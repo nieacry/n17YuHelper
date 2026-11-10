@@ -44,19 +44,13 @@ dotnet publish src/n17YuHelper/n17YuHelper.csproj -c Release -o /tmp/pub
 
 ## Публичный выпуск (GitHub Releases, Velopack)
 
-Для установленных копий у пользователей. Делается после обычного выпуска (exe уже собран в `/tmp/pub`):
-```
-export DOTNET_ROOT=/opt/dotnet PATH=/opt/dotnet:$HOME/.dotnet/tools:$PATH   # vpk: dotnet tool install -g vpk --version 1.2.161
-gh release download vX.Y.Z-предыдущая -D releases -p '*.nupkg' -p 'releases.win.json'   # для дельта-обновлений
-vpk "[win]" pack -u n17YuHelper -v X.Y.Z -r win-x64 -p /tmp/pub -e n17YuHelper.exe -o releases \
-    --packTitle "n17 YuHelper" --packAuthors nieacry -i src/n17YuHelper/Resources/app.ico \
-    --framework net10-x64-desktop --shortcuts StartMenuRoot --releaseNotes release-notes/X.Y.Z.md
-gh release create vX.Y.Z releases/n17YuHelper-X.Y.Z-*.nupkg releases/n17YuHelper-win-Setup.exe \
-    releases/n17YuHelper-win-Portable.zip releases/releases.win.json releases/RELEASES releases/assets.win.json \
-    --title "n17 YuHelper X.Y.Z" --notes-file release-notes/X.Y.Z.md
-```
-- `release-notes/X.Y.Z.md` — заметки к выпуску **на английском** (их видят пользователи), CHANGELOG — по-русски.
+Для установленных копий у пользователей. Собирает GitHub Actions (`.github/workflows/release.yml`) на Windows:
+1. Написать `release-notes/X.Y.Z.md` — заметки **на английском** (их видят пользователи; CHANGELOG — по-русски).
+2. Закоммитить, затем `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+3. Workflow: `dotnet publish` → `vpk download github` (прошлый выпуск, для дельта-обновлений) → `vpk pack` → `vpk upload github --publish`. Проверить: `gh run list -R nieacry/n17YuHelper`, `gh release view vX.Y.Z -R nieacry/n17YuHelper`.
+- Создавать релизы из облачной сессии напрямую нельзя (403) — только через тег.
 - Пакет (packId) — `n17YuHelper`, менять нельзя: по нему находятся обновления.
+- Локально можно проверить упаковку: `vpk "[win]" pack ... -r win-x64` (dotnet tool `vpk` 1.2.161, `DOTNET_ROOT=/opt/dotnet`).
 
 ## Что нельзя проверить в облаке
 

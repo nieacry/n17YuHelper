@@ -1,0 +1,56 @@
+# Публичный выпуск: тег vX.Y.Z → сборка на Windows → установщик Velopack → GitHub Release.
+# Заметки к выпуску (на английском) — release-notes/X.Y.Z.md.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (X.Y.Z)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        id: v
+        shell: pwsh
+        run: |
+          $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}'.TrimStart('v') }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          $notes = "release-notes/$v.md"
+          if (-not (Test-Path $notes)) { "n17 YuHelper $v" | Out-File -Encoding utf8 $notes }
+          "notes=$notes" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        run: dotnet publish src/n17YuHelper/n17YuHelper.csproj -c Release -o publish -p:Version=${{ steps.v.outputs.version }}
+
+      - name: Install vpk
+        run: dotnet tool install -g vpk --version 1.2.161
+
+      - name: Download previous release (for delta updates)
+        continue-on-error: true
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} -o releases
+
+      - name: Pack
+        run: >
+          vpk pack -u n17YuHelper -v ${{ steps.v.outputs.version }} -r win-x64 -p publish -e n17YuHelper.exe -o releases
+          --packTitle "n17 YuHelper" --packAuthors nieacry -i src/n17YuHelper/Resources/app.ico
+          --framework net10-x64-desktop --shortcuts StartMenuRoot --releaseNotes ${{ steps.v.outputs.notes }}
+
+      - name: Upload to GitHub Releases
+        run: >
+          vpk upload github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
+          -o releases --publish --merge --releaseName "n17 YuHelper ${{ steps.v.outputs.version }}" --tag v${{ steps.v.outputs.version }} --targetCommitish ${{ github.sha }}
