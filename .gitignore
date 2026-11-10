@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+*.user
+publish/
+versions/
+releases/
+models/**/*.gguf
+models/**/*.jinja
+models/**/*.part
+runtime/llama-server/*
+!runtime/llama-server/README.txt
+logs/
+settings.json
+history.json
+*.update.exe
+CLAUDE.local.md

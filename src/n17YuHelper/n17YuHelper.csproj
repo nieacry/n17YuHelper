@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+
+    <AssemblyName>n17YuHelper</AssemblyName>
+    <RootNamespace>N17YuHelper</RootNamespace>
+    <Product>n17 YuHelper</Product>
+    <Version>0.11.3</Version>
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- Публикация: один exe, нужен .NET 10 Desktop Runtime -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <DebugType>none</DebugType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <!-- Меньше памяти в простое -->
+    <ServerGarbageCollector>false</ServerGarbageCollector>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\app.ico" LogicalName="app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- QR-коды и штрихкоды -->
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+    <!-- PDF читается редко: без предкомпиляции exe намного меньше. -->
+    <PublishReadyToRunExclude Include="UglyToad.PdfPig.dll;UglyToad.PdfPig.Core.dll;UglyToad.PdfPig.DocumentLayoutAnalysis.dll;UglyToad.PdfPig.Fonts.dll;UglyToad.PdfPig.Package.dll;UglyToad.PdfPig.Tokenization.dll;UglyToad.PdfPig.Tokens.dll" />
+  </ItemGroup>
+
+</Project>
