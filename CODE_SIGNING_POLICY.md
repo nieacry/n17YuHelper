@@ -5,7 +5,7 @@ n17 YuHelper publishes Windows release artifacts from the public repository
 
 ## Status
 
-The project is applying to the [SignPath Foundation](https://signpath.org) open-source program.
+The project applied to the [SignPath Foundation](https://signpath.org) open-source program on 2026-11-11 (pending).
 Until it is approved, release files are **not signed**, and Windows SmartScreen may show a warning.
 Once approved, Windows release artifacts will use:
 
