@@ -51,7 +51,8 @@
 
 ## Прочее
 
-- `AppSettings` — settings.json рядом с exe, `SettingsVersion` + `Migrate()` (сейчас 10). Новые клавиши по умолчанию добавлять через миграцию.
+- `AppPaths` — где данные: переносной режим (рядом с exe) или установленная программа (`%LocalAppData%\n17YuHelper`, на уровень выше папки `current`).
+- `AppSettings` — settings.json в папке данных, `SettingsVersion` + `Migrate()` (сейчас 10). Новые клавиши по умолчанию добавлять через миграцию.
 - `Updater` — `n17YuHelper.update.exe` рядом с exe → применяется, когда программа простаивает.
 - `Startup` — автозапуск (HKCU Run). `Log` — `publish\logs\yuhelper.log` (+ llama-ocr.log, llama-text.log).
 - `tools/setup-models.ps1` — запасной скрипт скачивания моделей и llama.cpp.

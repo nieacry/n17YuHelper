@@ -146,7 +146,7 @@ public sealed class AppSettings
     /// <summary>Окно действий не закрывается, когда щёлкаешь в другом месте (как кнопка 📌).</summary>
     public bool KeepWindowOpen { get; set; } = false;
 
-    /// <summary>Хранить историю на диске (history.json рядом с exe), иначе только до выхода.</summary>
+    /// <summary>Хранить историю на диске (history.json в папке данных), иначе только до выхода.</summary>
     public bool SaveHistory { get; set; } = true;
 
     /// <summary>Сколько последних результатов хранить.</summary>
@@ -193,7 +193,7 @@ public sealed class AppSettings
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public static string FilePath => Path.Combine(AppContext.BaseDirectory, "settings.json");
+    public static string FilePath => Path.Combine(AppPaths.DataDir, "settings.json");
 
     /// <summary>Быстро прочитать только тему (до создания окон).</summary>
     public static string PeekTheme()
@@ -313,7 +313,7 @@ public sealed class AppSettings
     }
 
     public string ResolvePath(string path) =>
-        Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
+        Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(AppPaths.DataDir, path));
 
     /// <summary>Папка с моделями (настройка или автопоиск).</summary>
     [JsonIgnore]
@@ -331,13 +331,16 @@ public sealed class AppSettings
     {
         if (!string.IsNullOrWhiteSpace(configured)) return ResolvePath(configured);
 
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        // Установленная программа: только папка данных (выше по дереву — чужие папки).
+        if (AppPaths.IsInstalled) return Path.Combine(AppPaths.DataDir, relative);
+
+        var dir = new DirectoryInfo(AppPaths.ExeDir);
         for (int i = 0; i < 4 && dir is not null; i++, dir = dir.Parent)
         {
             var candidate = Path.Combine(dir.FullName, relative);
             if (Directory.Exists(candidate)) return candidate;
         }
-        return Path.Combine(AppContext.BaseDirectory, relative);
+        return Path.Combine(AppPaths.ExeDir, relative);
     }
 }
 
@@ -430,14 +433,8 @@ public sealed class TranslationSettings
     /// Словарь терминов: строки «термин => перевод» (или «термин => =», чтобы не переводить).
     /// В запрос попадают только термины, которые есть в тексте.
     /// </summary>
-    public List<string> Glossary { get; set; } =
-    [
-        "viewport => вьюпорт",
-        "rig => риг",
-        "UV => =",
-        "Maya => =",
-        "Blender => =",
-    ];
+    /// Для новых установок пусто; у существующих настроек сохраняется то, что уже есть.
+    public List<string> Glossary { get; set; } = [];
 }
 
 /// <summary>Своё действие: имя и указание для модели. Текст подставляется сам.</summary>
@@ -450,7 +447,7 @@ public sealed class CustomAction
     [
         new() { Name = "Make polite", Prompt = "Rewrite the text to sound polite and friendly, keeping its meaning." },
         new() { Name = "Shorten", Prompt = "Make the text shorter and clearer, keeping all important information." },
-        new() { Name = "Explain", Prompt = "Explain what the text means in simple words. Answer in Russian." },
+        new() { Name = "Explain", Prompt = "Explain what the text means in simple words. Answer in the same language as the text." },
         new() { Name = "Reply", Prompt = "Write a short, friendly reply to this message in the same language as the message." },
     ];
 }

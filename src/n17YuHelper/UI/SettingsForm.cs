@@ -281,7 +281,7 @@ internal sealed class SettingsForm : Form
         Tip(_microphone, "Microphone for voice input. Default follows the Windows setting.");
         AddRow(t, "Microphone:", _microphone);
 
-        _saveHistory = new CheckBox { Text = "Keep history after restart (history.json next to the app)", AutoSize = true, Checked = _s.SaveHistory };
+        _saveHistory = new CheckBox { Text = "Keep history after restart (saved to history.json)", AutoSize = true, Checked = _s.SaveHistory };
         Tip(_saveHistory, $"Saves the last {_s.HistoryLimit} results: what you translated, recognized and dictated. Off = history is cleared when the app exits.");
         AddFull(t, _saveHistory);
 

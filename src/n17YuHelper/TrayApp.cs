@@ -134,6 +134,7 @@ internal sealed class TrayApp : ApplicationContext
         _idleTimer.Start();
 
         Log.Info($"Starting n17 YuHelper {VersionText}");
+        Log.Info($"Data folder: {AppPaths.DataDir} ({(AppPaths.IsInstalled ? "installed" : "portable")})");
         Log.Info($"Models folder: {_settings.ModelsDir}");
         Log.Info($"llama-server folder: {_settings.RuntimeDir}");
         ApplyHotkeys(showProblems: true);
@@ -164,7 +165,7 @@ internal sealed class TrayApp : ApplicationContext
         string model = Path.Combine(models, s.ModelFile);
         string mmproj = Path.Combine(models, s.MmprojFile);
         string template = Path.Combine(models, s.ChatTemplateFile);
-        string logFile = Path.Combine(AppContext.BaseDirectory, "logs", "llama-ocr.log");
+        string logFile = Path.Combine(AppPaths.LogsDir, "llama-ocr.log");
 
         var args = new List<string>
         {
@@ -192,7 +193,7 @@ internal sealed class TrayApp : ApplicationContext
         var s = _settings.TextModel;
         string exe = Path.Combine(_settings.RuntimeDir, "llama-server.exe");
         string model = Path.Combine(_settings.ModelsDir, s.ModelFile);
-        string logFile = Path.Combine(AppContext.BaseDirectory, "logs", "llama-text.log");
+        string logFile = Path.Combine(AppPaths.LogsDir, "llama-text.log");
 
         var args = new List<string>
         {
@@ -365,8 +366,8 @@ internal sealed class TrayApp : ApplicationContext
         advanced.DropDownItems.Add("Reload settings.json", null, (_, _) => ReloadSettings());
         advanced.DropDownItems.Add("Add to Explorer \"Send to\" menu", null, (_, _) => AddToSendTo());
         menu.Items.Add(advanced);
-        menu.Items.Add("Open app folder", null, (_, _) => OpenPath(AppContext.BaseDirectory));
-        menu.Items.Add("Open logs folder", null, (_, _) => OpenPath(Path.Combine(AppContext.BaseDirectory, "logs")));
+        menu.Items.Add("Open app folder", null, (_, _) => OpenPath(AppPaths.DataDir));
+        menu.Items.Add("Open logs folder", null, (_, _) => OpenPath(AppPaths.LogsDir));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ExitThread());
 

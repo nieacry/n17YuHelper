@@ -1,12 +1,12 @@
 namespace N17YuHelper;
 
-/// <summary>Простой журнал в logs\yuhelper.log рядом с exe.</summary>
+/// <summary>Простой журнал в logs\yuhelper.log (в папке данных, см. AppPaths).</summary>
 internal static class Log
 {
     private static readonly object Sync = new();
     private const long MaxSize = 1024 * 1024;
 
-    private static string Dir => Path.Combine(AppContext.BaseDirectory, "logs");
+    private static string Dir => AppPaths.LogsDir;
     private static string FilePath => Path.Combine(Dir, "yuhelper.log");
 
     public static void Info(string message) => Write("INFO ", message);

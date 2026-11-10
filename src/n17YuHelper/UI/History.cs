@@ -3,7 +3,7 @@ namespace N17YuHelper.UI;
 public sealed record HistoryItem(DateTime Time, string Kind, string Source, string Result);
 
 /// <summary>
-/// Последние результаты. Если включено — хранятся в history.json рядом с exe
+/// Последние результаты. Если включено — хранятся в history.json в папке данных
 /// (читаются при первом обращении, а не при запуске, чтобы не занимать память в трее).
 /// </summary>
 public sealed class HistoryStore(Func<AppSettings> settings)
@@ -14,7 +14,7 @@ public sealed class HistoryStore(Func<AppSettings> settings)
 
     public event Action? Changed;
 
-    public static string FilePath => Path.Combine(AppContext.BaseDirectory, "history.json");
+    public static string FilePath => Path.Combine(AppPaths.DataDir, "history.json");
 
     public IReadOnlyList<HistoryItem> Items => Loaded();
 
