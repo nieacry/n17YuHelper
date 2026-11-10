@@ -1,100 +1,70 @@
 # n17 YuHelper
 
-Программа для Windows, которая живёт в трее. По горячей клавише берёт выделенный текст или область экрана и предлагает: перевести, распознать текст и скопировать, проверить грамматику. Все модели работают локально.
+**English** · [Русский](README.ru.md)
 
-Открытый код, лицензия MIT (см. `LICENSE`, сторонние компоненты — `THIRD-PARTY-NOTICES.md`). План публичного выпуска — `docs/RELEASE-PLAN.md`.
+A Windows tray app in the spirit of ShareX: press a hotkey, select a screen region, take the selected text or just speak — and **recognize, translate or proofread** it with AI models that run **on your own computer** (llama.cpp). Nothing is sent to the internet.
 
-## Запуск
+- **OCR** of any screen region: text, tables (paste into Excel / Word), formulas (LaTeX), QR codes
+- **Translation** between English, Russian, Ukrainian, Chinese and many other languages, with a glossary of your own terms
+- **Grammar and spelling check** with highlighted corrections, one key to replace the original text
+- **Voice input**: speak and translate, or dictate straight into any app
+- **Translate files**: txt, srt, docx and pptx (formatting kept), pdf (scans too), images
+- **Translate over the original**: the translation is shown right on top of the region, with a live mode for subtitles
+- Custom actions ("make polite", "shorten", your own prompts), history with search, dark theme
 
-1. Один раз установить **.NET 10 Desktop Runtime (x64)**: https://dotnet.microsoft.com/download/dotnet/10.0
-   (если его нет, при запуске Windows сама предложит скачать).
-2. При первом запуске откроется окно моделей: оно покажет видеокарту и предложит скачать подходящие модели (кнопка «Download recommended»). Позже — меню трея → Models... (`tools\setup-models.cmd` — запасной способ).
-3. Запустить `publish\n17YuHelper.exe`. Иконка «Yu» появится в трее.
+Free and open source (MIT). Third-party components and model licenses: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-## Горячие клавиши по умолчанию
+## Install
 
-| Клавиша | Что делает |
+1. Download **`n17YuHelper-win-Setup.exe`** from the [latest release](https://github.com/nieacry/n17YuHelper/releases/latest) and run it. No admin rights needed; .NET 10 Desktop Runtime is installed automatically if missing.
+   The installer is not code-signed yet ([code signing policy](CODE_SIGNING_POLICY.md)), so Windows SmartScreen may say *"Windows protected your PC"*: click **More info → Run anyway**.
+2. On first start the app detects your graphics card and offers the right models: click **Download recommended** (about 6–10 GB for most graphics cards). You can choose another folder for them (**Change models folder...**).
+3. The **Yu** icon appears in the system tray. The app starts with Windows and updates itself (Settings → General → updates).
+
+Prefer no installer? Use `n17YuHelper-win-Portable.zip` and unpack it anywhere.
+
+**Requirements:** Windows 10/11 x64. A graphics card with 6 GB+ of memory is recommended (NVIDIA, AMD or Intel); it also runs on the CPU, slowly.
+
+| GPU memory | Translation model | Download |
+|---|---|---|
+| 4 GB or less / no GPU | Gemma 4 E2B | ~5.5 GB |
+| 6–8 GB | Gemma 4 E4B | ~7.4 GB |
+| 10–12 GB | Gemma 4 12B | ~9 GB |
+| 16 GB+ | Gemma 4 26B / 31B | 16–19.5 GB |
+
+(Sizes include PaddleOCR-VL for text recognition, ~1.8 GB. llama.cpp adds 0.1–0.7 GB depending on the graphics card.)
+
+## Default hotkeys
+
+| Hotkey | Action |
 |---|---|
-| Ctrl+Shift+Win+Q | Умная: выделен текст — берёт его, иначе рамка → меню действий |
-| Ctrl+Shift+Win+O | Рамка → распознать текст → в буфер |
-| Ctrl+Shift+Win+T | Умная → перевод (окно: сверху оригинал, снизу перевод) |
-| Ctrl+Shift+Win+G | Выделенный текст → проверка грамматики (5 — заменить исправленным) |
-| Ctrl+Shift+Win+R | Выделенный текст → сразу заменить переводом |
-| Ctrl+Shift+Win+A | Последняя область → перевод поверх оригинала (▶ — живой режим) |
-| Ctrl+Shift+Win+V | Голос → перевод (говорите, потом та же клавиша или пауза) |
-| Ctrl+Shift+Win+D | Голос → текст сразу в программу, где стоит курсор (диктовка) |
+| Ctrl+Shift+Win+Q | Smart key: selected text if any, otherwise a region → action window |
+| Ctrl+Shift+Win+O | Region → recognize text → clipboard |
+| Ctrl+Shift+Win+T | Translate (selected text or a region) |
+| Ctrl+Shift+Win+G | Check grammar of the selected text |
+| Ctrl+Shift+Win+R | Replace the selected text with its translation |
+| Ctrl+Shift+Win+A | Translate the last region over the original (▶ live mode) |
+| Ctrl+Shift+Win+V | Speak → translation |
+| Ctrl+Shift+Win+D | Speak → text typed into the app (dictation) |
 
-Левый клик по иконке — рамка выделения. Правый — меню (там же «Start with Windows» — автозапуск).
+Left-click the tray icon to select a region; right-click for the menu. Every hotkey can be changed or added in **Settings → Hotkeys**.
 
-### В окне действий
-Исходный текст можно править или набирать заново. Пока курсор в поле ввода, действия — на Ctrl+1…Ctrl+5 (Ctrl+Enter — перевести).
-- 1 — перевести (язык перевода — в списке рядом)
-- 2 — распознать текст на картинке
-- 3 — проверить грамматику
-- 4 — скопировать результат
-- 5 — заменить выделенный текст результатом (если текст был выделен в программе)
-- 6–9 — свои действия (Settings → Actions)
-- ▾ рядом с «Recognize text» — распознать таблицу (для Excel / Word) или формулу (LaTeX)
-- Ctrl+M или 🎤 в заголовке — надиктовать текст в поле
-- Ctrl+O или 📂 — открыть файл и перевести; файл можно просто перетащить в окно
-- Ctrl+S — сохранить перевод в файл; 📌 — не закрывать окно, когда щёлкаешь в другом месте
-- Esc — закрыть
+**In the action window:** 1 translate · 2 recognize · 3 grammar · 4 copy · 5 replace in the app · 6–9 custom actions · Ctrl+M dictate · Ctrl+O open a file · Ctrl+S save · Esc close.
 
-### Голосовой ввод
-Работает той же моделью, что переводит (Gemma 4 E2B, E4B или 12B), — нужна её «голосовая часть» (файл mmproj, для 12B — 175 МБ): Models... → «Add voice». Запись — плашка внизу экрана с уровнем звука. Закончить: та же клавиша ещё раз, кнопка ■ или пауза 2 секунды (`Voice.AutoStopSilenceSeconds`, 0 — только вручную). Esc — отменить. Длинная речь режется на части по паузам. Языки распознаются любые из четырёх, можно смешивать.
+**In the region frame:** drag to select · click to take the window or control under the cursor · arrows move by 1 px (Shift — 10 px) · right-click resets · Esc exits.
 
-### Перевод файлов
-Меню трея → «Translate file...», перетащить файл в окно действий, или правый клик по файлу в Проводнике → «Отправить» → n17 YuHelper (добавить: меню трея → Advanced → Add to Explorer "Send to" menu).
-- Текст: .txt, .md, .srt, .vtt, .csv, .json, .xml, .html, .po и другие (UTF-8, UTF-16 или Windows-1251)
-- Word (.docx), PowerPoint (.pptx) — перевод сохраняется в такой же файл с тем же оформлением; RTF
-- PDF: текстовый слой; сканированные страницы распознаются моделью OCR
-- Картинки: .png, .jpg, .bmp, .gif, .tif
-Длинный текст переводится по частям (абзацами), перевод появляется по мере готовности. «Save» сохраняет рядом с исходным: `имя.en.txt` (у текстовых форматов расширение сохраняется, например `фильм.ru.srt`).
+## Privacy
 
-### В рамке выделения
-- ЛКМ и тянуть — выделить область
-- Клик — взять окно или элемент под курсором
-- Enter — взять окно под курсором
-- Стрелки — сдвиг курсора на 1 px, с Shift — на 10 px
-- ПКМ — сбросить выделение; ещё раз ПКМ или Esc — выйти
+Text, screenshots and voice are processed locally by llama.cpp on your PC. The app goes online only to download models (Hugging Face), llama.cpp (GitHub) and its own updates (GitHub). No telemetry.
 
-## Настройки
+## Settings and files
 
-Меню трея → **Settings...**: горячие клавиши (как в ShareX), общие, модели, перевод.
-Там же в меню: **Type text...** (пустое окно для ввода текста), **Dictate...**, **Translate file...**, **History** (последние 300 результатов, сохраняются в `history.json`; поиск — Ctrl+F). **Open last window** — вернуть последнее закрытое окно с текстом и переводом.
+Tray menu → **Settings...**. Everything is stored in `settings.json` in the data folder (`%LocalAppData%\n17YuHelper` for the installed app; tray menu → *Open app folder*). Logs: `logs\yuhelper.log`.
 
-Всё хранится в `settings.json` рядом с exe. Его можно править и вручную: меню трея → Advanced → Open / Reload settings.json.
+## Problems and ideas
 
-Основное:
-- `Hotkeys` — список клавиш. `Source`: `Auto`, `SelectedText`, `Region`, `Clipboard`, `LastRegion`, `Voice`. `Action`: `Menu`, `Ocr`, `OcrTable`, `OcrFormula`, `Translate`, `Grammar`, `Custom`, `AsIs` (текст как есть). `After`: `ShowWindow`, `Copy`, `Replace` (вставить в программу), `Overlay`.
-- `Voice` — `Enabled` (грузить голосовую часть модели), `AutoStopSilenceSeconds`, `MaxSeconds`.
-- `Voice.Microphone` — микрофон (название; пусто — по умолчанию).
-- `KeepWindowOpen` — окно действий не закрывается при щелчке в другом месте.
-- `SaveHistory`, `HistoryLimit` — хранить историю на диске и сколько записей.
-- `CopyWithCtrlInsertProcesses` — программы (терминалы), где текст копируется через Ctrl+Insert, чтобы Ctrl+C не прервал команду.
-- `NeverCopyProcesses` — программы, где выделенный текст не берётся, сразу рамка (по умолчанию `maya`, `blender`).
-- `ShowMagnifier` — лупа в рамке выделения (по умолчанию выключена).
-- `SelectionCopyTimeoutMs` — сколько ждать копирования выделенного текста (по умолчанию 250 мс).
-- `ModelsPath`, `RuntimePath` — пути к моделям и llama-server. Пусто — найти автоматически.
-- `ModelIdleUnloadMinutes` — через сколько минут простоя выгружать модели (0 — не выгружать).
-- `TextModel` — файл модели перевода, `Temperature`, `PreloadOnMenu` (грузить модель, как только открылось окно действий).
-- `Translation.DefaultTargets` — куда переводить по умолчанию (`"ru": "en"` и т.д.); `LastTargets` — что выбрано вручную последним (имеет приоритет).
-- `Ocr` — файлы модели распознавания, `PreloadOnHotkey` (грузить модель сразу при нажатии клавиши), `UpscaleSmallImages`, `MaxPixelsPerTile`.
+[Open an issue](https://github.com/nieacry/n17YuHelper/issues) — please attach `logs\yuhelper.log` if something does not work.
 
-Журналы рядом с exe: `logs\yuhelper.log` (программа), `logs\llama-ocr.log` (распознавание), `logs\llama-text.log` (перевод).
+## Building from source
 
-## Папки
-
-```
-src\            исходники (C# / .NET 10 / WinForms)
-models\         модели (не копируются в publish и versions)
-runtime\        llama-server (скачивается tools\setup-models.cmd)
-tools\          setup-models.cmd — скачать llama-server и модели
-tests\samples\  тестовые скриншоты и тексты en / ru / uk / zh
-publish\        актуальная версия
-versions\       по подпапке на каждую версию
-```
-
-## Сборка
-
-`build.cmd` — собирает в `publish\` и копирует в `versions\vX.Y\`. Нужен .NET 10 SDK.
+.NET 10 SDK: `dotnet publish src/n17YuHelper/n17YuHelper.csproj -c Release -o publish`. Developer notes (in Russian): [CLAUDE.md](CLAUDE.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

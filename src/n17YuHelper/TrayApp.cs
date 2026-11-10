@@ -379,6 +379,11 @@ internal sealed class TrayApp : ApplicationContext
         menu.Items.Add(advanced);
         menu.Items.Add("Open app folder", null, (_, _) => OpenPath(AppPaths.DataDir));
         menu.Items.Add("Open logs folder", null, (_, _) => OpenPath(AppPaths.LogsDir));
+        var help = new ToolStripMenuItem("Help");
+        help.DropDownItems.Add("What's new", null, (_, _) => OpenUrl(OnlineUpdater.ReleasesUrl));
+        help.DropDownItems.Add("Report a problem...", null, (_, _) => OpenUrl(OnlineUpdater.RepoUrl + "/issues/new?template=bug_report.md"));
+        help.DropDownItems.Add("Project page (GitHub)", null, (_, _) => OpenUrl(OnlineUpdater.RepoUrl));
+        menu.Items.Add(help);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ExitThread());
 
