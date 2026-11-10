@@ -2,7 +2,7 @@
 
 Приложение в трее Windows (логика как у ShareX): глобальная клавиша → рамка области экрана или выделенный текст / голос / файл → окно действий: перевод, распознавание текста (OCR) в буфер, проверка грамматики, свои действия. Всё на локальных моделях через llama.cpp.
 
-Текущая версия: **0.12** (см. CHANGELOG.md). Подробности устройства — docs/ARCHITECTURE.md, планы и идеи — docs/ROADMAP.md, для пользователя — README.md.
+Текущая версия: **0.13** (см. CHANGELOG.md). Подробности устройства — docs/ARCHITECTURE.md, планы и идеи — docs/ROADMAP.md, для пользователя — README.md.
 
 ## Правила проекта (обязательно)
 
@@ -19,7 +19,7 @@
 
 ## Стек
 
-C# / .NET 10 WinForms, один exe (framework-dependent single-file, ReadyToRun, нужен .NET 10 Desktop Runtime). NuGet: ZXing.Net 0.16.11 (QR), PdfPig 0.1.16 (PDF, исключён из R2R). Остальное — Win32 P/Invoke без библиотек.
+C# / .NET 10 WinForms, один exe (framework-dependent single-file, ReadyToRun, нужен .NET 10 Desktop Runtime). NuGet: ZXing.Net 0.16.11 (QR), PdfPig 0.1.16 (PDF, исключён из R2R), Velopack 1.2.161 (установка и обновления). Остальное — Win32 P/Invoke без библиотек.
 
 ## Сборка
 
@@ -41,6 +41,22 @@ dotnet publish src/n17YuHelper/n17YuHelper.csproj -c Release -o /tmp/pub
 4. Проверить в `publish\logs\yuhelper.log`: строка `Starting n17 YuHelper X.Y.Z`.
 
 **Из облачной сессии через мост устройства:** копировать в `/mnt/user-data/outputs/...`, затем `device_commit_files` с `force: true`. Важно: `publish\n17YuHelper.update.exe` коммитить из **нового** staged-пути (`.../versions/vX.Y.Z/n17YuHelper.exe`), а не из одного и того же `publish/n17YuHelper.update.exe` — повторный коммит с того же пути однажды записал старый файл. После коммита подождать ~20 с и проверить версию в журнале.
+
+## Публичный выпуск (GitHub Releases, Velopack)
+
+Для установленных копий у пользователей. Делается после обычного выпуска (exe уже собран в `/tmp/pub`):
+```
+export DOTNET_ROOT=/opt/dotnet PATH=/opt/dotnet:$HOME/.dotnet/tools:$PATH   # vpk: dotnet tool install -g vpk --version 1.2.161
+gh release download vX.Y.Z-предыдущая -D releases -p '*.nupkg' -p 'releases.win.json'   # для дельта-обновлений
+vpk "[win]" pack -u n17YuHelper -v X.Y.Z -r win-x64 -p /tmp/pub -e n17YuHelper.exe -o releases \
+    --packTitle "n17 YuHelper" --packAuthors nieacry -i src/n17YuHelper/Resources/app.ico \
+    --framework net10-x64-desktop --shortcuts StartMenuRoot --releaseNotes release-notes/X.Y.Z.md
+gh release create vX.Y.Z releases/n17YuHelper-X.Y.Z-*.nupkg releases/n17YuHelper-win-Setup.exe \
+    releases/n17YuHelper-win-Portable.zip releases/releases.win.json releases/RELEASES releases/assets.win.json \
+    --title "n17 YuHelper X.Y.Z" --notes-file release-notes/X.Y.Z.md
+```
+- `release-notes/X.Y.Z.md` — заметки к выпуску **на английском** (их видят пользователи), CHANGELOG — по-русски.
+- Пакет (packId) — `n17YuHelper`, менять нельзя: по нему находятся обновления.
 
 ## Что нельзя проверить в облаке
 

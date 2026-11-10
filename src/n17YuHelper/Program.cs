@@ -1,3 +1,5 @@
+using Velopack;
+
 namespace N17YuHelper;
 
 internal static class Program
@@ -8,6 +10,13 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // Velopack: служебные запуски установщика (установка / обновление / удаление) обрабатываются здесь и сразу завершаются.
+        // При установке включаем автозапуск с Windows (программа живёт в трее), при удалении — убираем его.
+        VelopackApp.Build()
+            .OnAfterInstallFastCallback(_ => { try { Startup.Enable(); } catch { } })
+            .OnBeforeUninstallFastCallback(_ => { try { if (Startup.IsEnabledForThisExe) Startup.Disable(); } catch { } })
+            .Run();
+
         StartupFile = args.FirstOrDefault(a => !a.StartsWith("--") && File.Exists(a)) is { } f ? Path.GetFullPath(f) : null;
 
         using var mutex = new Mutex(initiallyOwned: true, @"Local\n17YuHelper_SingleInstance", out bool isFirst);

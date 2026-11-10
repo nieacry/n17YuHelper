@@ -50,6 +50,8 @@ internal sealed class SettingsForm : Form
     private NumericUpDown _voiceSilence = null!;
     private ComboBox _microphone = null!;
     private CheckBox _saveHistory = null!;
+    private CheckBox _checkUpdates = null!;
+    private CheckBox _installUpdates = null!;
     private CheckBox _keepOpen = null!;
 
     // Translation
@@ -285,6 +287,13 @@ internal sealed class SettingsForm : Form
         Tip(_saveHistory, $"Saves the last {_s.HistoryLimit} results: what you translated, recognized and dictated. Off = history is cleared when the app exits.");
         AddFull(t, _saveHistory);
 
+        _checkUpdates = new CheckBox { Text = "Check for updates automatically", AutoSize = true, Checked = _s.CheckUpdatesAutomatically };
+        Tip(_checkUpdates, "Checks GitHub for a new version at startup and every 6 hours, and downloads it in the background.\nOnly for the installed app; a portable copy does not update itself.");
+        AddFull(t, _checkUpdates);
+        _installUpdates = new CheckBox { Text = "Install updates automatically (when the app is idle)", AutoSize = true, Checked = _s.InstallUpdatesAutomatically };
+        Tip(_installUpdates, "The app restarts into the new version as soon as no window is open and nothing is running.\nOff = you get a notification and choose when to restart (tray menu → Restart to update).");
+        AddFull(t, _installUpdates);
+
         _ctrlInsert = ListBox(_s.CopyWithCtrlInsertProcesses);
         Tip(_ctrlInsert, "Terminals: copy with Ctrl+Insert and paste with Shift+Insert, because Ctrl+C would stop a running command.\nOne process name per line, without .exe.");
         AddRow(t, "Terminals (Ctrl+Insert):", _ctrlInsert);
@@ -513,6 +522,8 @@ internal sealed class SettingsForm : Form
         _s.Voice.AutoStopSilenceSeconds = (double)_voiceSilence.Value;
         _s.Voice.Microphone = _microphone.SelectedIndex <= 0 ? "" : _microphone.Text.Replace(" (not connected)", "");
         _s.SaveHistory = _saveHistory.Checked;
+        _s.CheckUpdatesAutomatically = _checkUpdates.Checked;
+        _s.InstallUpdatesAutomatically = _installUpdates.Checked;
 
         // Модели
         _s.ModelsPath = _modelsPath.Text.Trim();

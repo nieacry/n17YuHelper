@@ -13,7 +13,7 @@
     <AssemblyName>n17YuHelper</AssemblyName>
     <RootNamespace>N17YuHelper</RootNamespace>
     <Product>n17 YuHelper</Product>
-    <Version>0.12.0</Version>
+    <Version>0.13.0</Version>
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <!-- QR-коды и штрихкоды -->
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
     <PackageReference Include="PdfPig" Version="0.1.16" />
     <!-- PDF читается редко: без предкомпиляции exe намного меньше. -->

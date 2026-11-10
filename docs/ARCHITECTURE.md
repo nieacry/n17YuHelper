@@ -53,7 +53,8 @@
 
 - `AppPaths` — где данные: переносной режим (рядом с exe) или установленная программа (`%LocalAppData%\n17YuHelper`, на уровень выше папки `current`).
 - `AppSettings` — settings.json в папке данных, `SettingsVersion` + `Migrate()` (сейчас 10). Новые клавиши по умолчанию добавлять через миграцию.
-- `Updater` — `n17YuHelper.update.exe` рядом с exe → применяется, когда программа простаивает.
+- `Updater` — `n17YuHelper.update.exe` рядом с exe → применяется, когда программа простаивает (переносная копия).
+- `OnlineUpdater` — Velopack + GitHub Releases для установленной программы: проверка через минуту и раз в 6 ч, скачивание в фоне, установка через `WaitExitThenApplyUpdates` (когда программа простаивает или по команде). `Program.Main` начинается с `VelopackApp.Build()…Run()` (хуки установки/удаления: автозапуск).
 - `Startup` — автозапуск (HKCU Run). `Log` — `publish\logs\yuhelper.log` (+ llama-ocr.log, llama-text.log).
 - `tools/setup-models.ps1` — запасной скрипт скачивания моделей и llama.cpp.
 - `tests/samples/` — картинки для проверки OCR на 4 языках.

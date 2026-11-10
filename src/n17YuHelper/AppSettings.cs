@@ -152,6 +152,12 @@ public sealed class AppSettings
     /// <summary>Сколько последних результатов хранить.</summary>
     public int HistoryLimit { get; set; } = 300;
 
+    /// <summary>Проверять обновления в интернете (GitHub) при запуске и раз в 6 часов. Только для установленной программы.</summary>
+    public bool CheckUpdatesAutomatically { get; set; } = true;
+
+    /// <summary>Ставить скачанное обновление самому, когда программа ничем не занята. Иначе — только уведомление.</summary>
+    public bool InstallUpdatesAutomatically { get; set; } = true;
+
     /// <summary>Что делать по левому клику по иконке в трее.</summary>
     public InputSource TrayClickSource { get; set; } = InputSource.Region;
 

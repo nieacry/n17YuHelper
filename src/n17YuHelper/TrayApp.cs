@@ -45,7 +45,9 @@ internal sealed class TrayApp : ApplicationContext
     private readonly HistoryStore _history;
     private readonly Updater _updater;
     private readonly ToolStripMenuItem _updateItem;
-    private bool _updateBalloon;
+    private readonly OnlineUpdater _online;
+    /// <summary>Что сделать по щелчку на всплывающем уведомлении.</summary>
+    private Action? _balloonClick;
     private bool _busy;
 
     public static string VersionText =>
@@ -114,13 +116,15 @@ internal sealed class TrayApp : ApplicationContext
                 _ = RunAsync(new HotkeyEntry { Name = "Tray icon click", Source = _settings.TrayClickSource, Action = HotkeyAction.Menu });
         };
 
-        _tray.BalloonTipClicked += (_, _) => { if (_updateBalloon) ApplyUpdate(); };
-        _tray.BalloonTipClosed += (_, _) => _updateBalloon = false;
+        _tray.BalloonTipClicked += (_, _) => { var a = _balloonClick; _balloonClick = null; a?.Invoke(); };
+        _tray.BalloonTipClosed += (_, _) => _balloonClick = null;
 
         SynchronizationContextHolder.Context = SynchronizationContext.Current;
         _updater = new Updater();
         _updater.UpdateReady += OnUpdateReady;
         _updater.CheckNow();
+        _online = new OnlineUpdater(() => _settings);
+        _online.UpdateDownloaded += OnOnlineUpdateDownloaded;
 
         _hotkeys = new HotkeyManager();
         _hotkeys.Pressed += entry => _ = RunAsync(entry);
@@ -143,7 +147,8 @@ internal sealed class TrayApp : ApplicationContext
             Notify("Error in settings.json", $"Using default settings.\n{settingsError}", ToolTipIcon.Warning);
 
         if (updated)
-            Notify("n17 YuHelper updated", $"Now running version {VersionText}.", ToolTipIcon.Info);
+            Notify("n17 YuHelper updated", $"Now running version {VersionText}. Click to see what's new.", ToolTipIcon.Info,
+                () => OpenUrl(OnlineUpdater.ReleaseUrl(VersionText)));
 
         // Видеокарту определяем заранее, в фоне (нужно для режима видеопамяти и мастера).
         Task.Run(() => GpuInfo.Detect());
@@ -331,6 +336,7 @@ internal sealed class TrayApp : ApplicationContext
         var menu = new ContextMenuStrip();
         menu.Items.Add(new ToolStripMenuItem($"n17 YuHelper {VersionText}") { Enabled = false });
         menu.Items.Add(_updateItem);
+        menu.Items.Add("Check for updates...", null, async (_, _) => await CheckForUpdatesManuallyAsync());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Capture region", null, (_, _) =>
             _ = RunAsync(new HotkeyEntry { Name = "Menu: region", Source = InputSource.Region, Action = HotkeyAction.Menu }));
@@ -486,9 +492,51 @@ internal sealed class TrayApp : ApplicationContext
 
     private bool IsIdle => !_busy && _recording is null && _actionForm is null && _settingsForm is null && _historyForm is null && _modelsForm is null;
 
+    /// <summary>Новая версия скачана из интернета.</summary>
+    private void OnOnlineUpdateDownloaded(string version)
+    {
+        _updateItem.Text = $"Restart to update to {version}";
+        _updateItem.Visible = true;
+        if (_settings.InstallUpdatesAutomatically)
+        {
+            _updatePending = true;
+            TryAutoUpdate();
+        }
+        else
+        {
+            Notify("Update available", $"n17 YuHelper {version} is downloaded. Click here or use \"Restart to update\" in the tray menu.",
+                ToolTipIcon.Info, ApplyUpdate);
+        }
+    }
+
+    /// <summary>Пункт меню «Check for updates...».</summary>
+    private async Task CheckForUpdatesManuallyAsync()
+    {
+        if (!_online.Supported)
+        {
+            Notify("Updates", "This is a portable copy, it does not update itself. Click to open the download page.",
+                ToolTipIcon.Info, () => OpenUrl(OnlineUpdater.ReleasesUrl));
+            return;
+        }
+        Notify("Updates", "Checking for updates...", ToolTipIcon.Info);
+        string result = await _online.CheckAsync(manual: true);
+        if (_online.Ready is not null && !_settings.InstallUpdatesAutomatically)
+            Notify("Update available", result + " Click to restart and install it.", ToolTipIcon.Info, ApplyUpdate);
+        else if (_online.Ready is null)
+            Notify("Updates", result, ToolTipIcon.Info);
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch (Exception ex) { Log.Error("Open " + url, ex); }
+    }
+
+    private bool HasAnyUpdate => Updater.HasUpdate || _online.Ready is not null;
+
     private void TryAutoUpdate()
     {
-        if (!_updatePending || !IsIdle || !Updater.HasUpdate) return;
+        if (!_updatePending || !IsIdle || !HasAnyUpdate) return;
         _updatePending = false;
         Log.Info("Applying update automatically");
         ApplyUpdate();
@@ -497,7 +545,9 @@ internal sealed class TrayApp : ApplicationContext
     private void ApplyUpdate()
     {
         if (_busy) return;
-        if (Updater.StartApplyAndRestart()) ExitThread();
+        // Скачанное из интернета — через Velopack; иначе — локальный файл n17YuHelper.update.exe.
+        bool started = _online.Ready is not null ? _online.StartApplyAndRestart() : Updater.StartApplyAndRestart();
+        if (started) ExitThread();
         else Notify("Update failed", "See logs\\yuhelper.log.", ToolTipIcon.Error);
     }
 
@@ -1332,9 +1382,9 @@ internal sealed class TrayApp : ApplicationContext
 
     // ---------------- Служебное ----------------
 
-    private void Notify(string title, string text, ToolTipIcon icon)
+    private void Notify(string title, string text, ToolTipIcon icon, Action? onClick = null)
     {
-        _updateBalloon = false;
+        _balloonClick = onClick;
         _tray.BalloonTipTitle = title;
         _tray.BalloonTipText = string.IsNullOrEmpty(text) ? " " : text;
         _tray.BalloonTipIcon = icon;
@@ -1389,6 +1439,7 @@ internal sealed class TrayApp : ApplicationContext
         _ipc.Dispose();
         _hotkeys.Dispose();
         _updater.Dispose();
+        _online.Dispose();
         _trimTimer.Dispose();
         _idleTimer.Dispose();
         _ocrServer.Dispose();
