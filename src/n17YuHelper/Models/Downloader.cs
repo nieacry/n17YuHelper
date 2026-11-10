@@ -53,14 +53,17 @@ public static class Downloader
             long offset = doneBefore;
             await DownloadFileAsync(file.Url, dest, file.Size,
                 new Progress<DownloadProgress>(p => progress.Report(new DownloadProgress(
-                    $"Downloading {name}", offset + p.Done, total, p.BytesPerSecond))), ct);
+                    p.Stage == "Verifying" ? $"Checking {name}" : $"Downloading {name}", offset + p.Done, total, p.BytesPerSecond))), ct, file.Sha256);
             doneBefore += file.Size;
         }
         Log.Info($"Downloaded {name} to {modelsDir}");
     }
 
-    /// <summary>Скачивает файл с докачкой: сначала в .part, в конце переименовывает.</summary>
-    public static async Task DownloadFileAsync(string url, string dest, long expectedSize, IProgress<DownloadProgress> progress, CancellationToken ct)
+    /// <summary>
+    /// Скачивает файл с докачкой: сначала в .part, в конце проверяет размер и SHA256 (если известен)
+    /// и переименовывает. Испорченный файл удаляется, чтобы следующая попытка скачала его заново.
+    /// </summary>
+    public static async Task DownloadFileAsync(string url, string dest, long expectedSize, IProgress<DownloadProgress> progress, CancellationToken ct, string? sha256 = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
         var part = dest + ".part";
@@ -81,6 +84,16 @@ public static class Downloader
 
         if (expectedSize > 0 && new FileInfo(part).Length != expectedSize)
             throw new IOException($"Downloaded size does not match for {Path.GetFileName(dest)}. Try again.");
+        if (!string.IsNullOrWhiteSpace(sha256))
+        {
+            string actual = await Sha256Async(part, progress, ct);
+            if (!string.Equals(actual, sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Delete(part);
+                Log.Info($"SHA256 mismatch for {Path.GetFileName(dest)}: expected {sha256}, got {actual}");
+                throw new IOException($"{Path.GetFileName(dest)} was damaged while downloading (checksum mismatch). Download it again.");
+            }
+        }
         File.Move(part, dest, overwrite: true);
     }
 
@@ -129,25 +142,48 @@ public static class Downloader
         progress.Report(new DownloadProgress("Downloading", done, total, speed));
     }
 
+    /// <summary>SHA256 файла (hex, строчными) с прогрессом «Verifying».</summary>
+    public static async Task<string> Sha256Async(string path, IProgress<DownloadProgress> progress, CancellationToken ct)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        await using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, FileOptions.SequentialScan | FileOptions.Asynchronous);
+        long total = fs.Length, done = 0;
+        var buffer = new byte[4 << 20];
+        var sw = Stopwatch.StartNew();
+        int read;
+        while ((read = await fs.ReadAsync(buffer, ct)) > 0)
+        {
+            sha.TransformBlock(buffer, 0, read, null, 0);
+            done += read;
+            if (sw.ElapsedMilliseconds > 250)
+            {
+                progress.Report(new DownloadProgress("Verifying", done, total, 0));
+                sw.Restart();
+            }
+        }
+        sha.TransformFinalBlock([], 0, 0);
+        return Convert.ToHexStringLower(sha.Hash!);
+    }
+
     // ---------------- llama-server ----------------
 
     /// <summary>Скачивает и распаковывает свежую сборку llama.cpp для этой видеокарты.</summary>
     public static async Task<string> InstallRuntimeAsync(GpuInfo gpu, string runtimeDir, IProgress<DownloadProgress> progress, CancellationToken ct)
     {
-        progress.Report(new DownloadProgress("Looking for the latest llama.cpp build", 0, 0, 0));
-        var (tag, assets) = await FindRuntimeAssetsAsync(gpu.LlamaBuild, ct);
+        progress.Report(new DownloadProgress("Looking for the llama.cpp build", 0, 0, 0));
+        var (tag, assets) = await FindRuntimeAssetsAsync(gpu.LlamaBuild, ModelCatalog.LlamaCppTag, ct);
 
         var temp = Path.Combine(Path.GetTempPath(), "n17YuHelper-runtime");
         Directory.CreateDirectory(temp);
         long total = assets.Sum(a => a.Size);
         long before = 0;
         var zips = new List<string>();
-        foreach (var (name, url, size) in assets)
+        foreach (var (name, url, size, sha) in assets)
         {
             var zip = Path.Combine(temp, name);
             long offset = before;
             await DownloadFileAsync(url, zip, size, new Progress<DownloadProgress>(p =>
-                progress.Report(new DownloadProgress($"Downloading llama.cpp {tag}", offset + p.Done, total, p.BytesPerSecond))), ct);
+                progress.Report(new DownloadProgress($"Downloading llama.cpp {tag}", offset + p.Done, total, p.BytesPerSecond))), ct, sha);
             zips.Add(zip);
             before += size;
         }
@@ -179,16 +215,27 @@ public static class Downloader
     }
 
     /// <summary>
-    /// Ищет самый свежий релиз llama.cpp, где есть сборка для Windows нужного вида.
-    /// «latest» бывает релизом только с исходниками, поэтому смотрим последние 30.
+    /// Находит сборку llama.cpp для Windows нужного вида. Если в каталоге задан проверенный тег — берём его;
+    /// если его нет (или тег пустой) — самый свежий релиз, где есть Windows-сборка («latest» бывает только с исходниками,
+    /// поэтому смотрим последние 30). SHA256 файлов — из поля digest GitHub, если оно есть.
     /// </summary>
-    private static async Task<(string Tag, List<(string Name, string Url, long Size)> Assets)> FindRuntimeAssetsAsync(string build, CancellationToken ct)
+    private static async Task<(string Tag, List<(string Name, string Url, long Size, string? Sha256)> Assets)> FindRuntimeAssetsAsync(string build, string pinnedTag, CancellationToken ct)
     {
-        using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30");
-        req.Headers.Accept.ParseAdd("application/vnd.github+json");
-        using var resp = await Http.SendAsync(req, ct);
-        resp.EnsureSuccessStatusCode();
-        var releases = JsonNode.Parse(await resp.Content.ReadAsStringAsync(ct)) as JsonArray ?? [];
+        var releases = new JsonArray();
+        if (!string.IsNullOrWhiteSpace(pinnedTag))
+        {
+            try
+            {
+                var one = await GetJsonAsync($"https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/{Uri.EscapeDataString(pinnedTag)}", ct);
+                if (one is not null) releases.Add(one);
+            }
+            catch (Exception ex) when (ex is HttpRequestException)
+            {
+                Log.Info($"llama.cpp {pinnedTag} not found ({ex.Message}), looking for the latest build");
+            }
+        }
+        if (releases.Count == 0 && await GetJsonAsync("https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30", ct) is JsonArray latest)
+            foreach (var r in latest.ToList()) { latest.Remove(r); releases.Add(r); }
 
         string mainPattern = build switch
         {
@@ -207,13 +254,15 @@ public static class Downloader
         foreach (var rel in releases)
         {
             if (rel?["assets"] is not JsonArray assets) continue;
-            (string, string, long)? Find(string pattern)
+            (string, string, long, string?)? Find(string pattern)
             {
                 foreach (var a in assets)
                 {
                     var name = a?["name"]?.GetValue<string>() ?? "";
-                    if (System.Text.RegularExpressions.Regex.IsMatch(name, pattern))
-                        return (name, a!["browser_download_url"]!.GetValue<string>(), a["size"]?.GetValue<long>() ?? 0);
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(name, pattern)) continue;
+                    var digest = a!["digest"]?.GetValue<string>();
+                    string? sha = digest is not null && digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) ? digest[7..] : null;
+                    return (name, a["browser_download_url"]!.GetValue<string>(), a["size"]?.GetValue<long>() ?? 0, sha);
                 }
                 return null;
             }
@@ -222,11 +271,25 @@ public static class Downloader
             var cudart = cudartPattern is null ? null : Find(cudartPattern);
             if (main is null || (cudartPattern is not null && cudart is null)) continue;
 
-            var list = new List<(string, string, long)> { main.Value };
+            var list = new List<(string, string, long, string?)> { main.Value };
             if (cudart is { } c) list.Add(c);
             return (rel["tag_name"]?.GetValue<string>() ?? "?", list);
         }
-        throw new InvalidOperationException($"No Windows {build} build found in the latest llama.cpp releases.");
+        if (!string.IsNullOrWhiteSpace(pinnedTag))
+        {
+            Log.Info($"llama.cpp {pinnedTag} has no Windows {build} build, looking for the latest one");
+            return await FindRuntimeAssetsAsync(build, "", ct);
+        }
+        throw new InvalidOperationException($"No Windows {build} build found in llama.cpp releases.");
+    }
+
+    private static async Task<JsonNode?> GetJsonAsync(string url, CancellationToken ct)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Accept.ParseAdd("application/vnd.github+json");
+        using var resp = await Http.SendAsync(req, ct);
+        resp.EnsureSuccessStatusCode();
+        return JsonNode.Parse(await resp.Content.ReadAsStringAsync(ct));
     }
 
     public static long FreeSpace(string path)

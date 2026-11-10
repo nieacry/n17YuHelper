@@ -21,10 +21,11 @@
 - `Llm/LlamaServer` — свой процесс `llama-server.exe` на модель (OCR и текст), свободный порт, ожидание `/health`, Job Object (убивается вместе с программой), выгрузка через `ModelIdleUnloadMinutes` и при запуске тяжёлых программ (`UnloadWhileRunning`). `ServerLaunch.FallbackArgs` — повтор без необязательной части.
 - `Llm/ChatClient` — OpenAI `/v1/chat/completions`, стриминг SSE.
 - `TrayApp.BuildOcrLaunch / BuildTextLaunch` — аргументы; GPU-режим Auto / Both / OneAtATime (`BeforeStart` выгружает другую модель).
-- `Models/ModelCatalog` — пакеты моделей с точными URL и размерами (HF), `Audio` — mmproj для голоса; `RecommendedText(gpu)` по видеопамяти: ≥23 → 31B, ≥15 → 26B, ≥9.5 → 12B, ≥5.5 → E4B, иначе E2B.
-- `Models/Downloader` — докачка (.part + Range), установка llama.cpp из GitHub-релизов (CUDA 13 / 12 / Vulkan / CPU по `GpuInfo`).
+- `Models/ModelCatalog` — пакеты моделей: URL на ревизию HF, размер, SHA256; формат catalog.json (`Apply`, `ExportBuiltin`); проверенный тег llama.cpp. `Models/CatalogUpdater` — сохранённый catalog.json при запуске, свежий с GitHub через 30 с.
+  `Audio` — mmproj для голоса; `RecommendedText(gpu)` (правила из каталога) по видеопамяти: ≥23 → 31B, ≥15 → 26B, ≥9.5 → 12B, ≥5.5 → E4B, иначе E2B.
+- `Models/Downloader` — докачка (.part + Range), проверка SHA256, установка llama.cpp из GitHub-релизов (проверенный тег, иначе свежий) (CUDA 13 / 12 / Vulkan / CPU по `GpuInfo`).
 - `Models/GpuInfo` — DXGI (видеопамять), запасной путь nvidia-smi.
-- `UI/ModelManagerForm` — менеджер моделей / мастер первого запуска; зелёная рамка — рекомендуемая, красная — не влезает в память.
+- `UI/ModelManagerForm` — менеджер моделей / мастер первого запуска, «Change models folder...»; зелёная рамка — рекомендуемая, красная — не влезает в память.
 
 ## Сервисы
 

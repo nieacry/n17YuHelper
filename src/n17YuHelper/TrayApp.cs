@@ -56,6 +56,7 @@ internal sealed class TrayApp : ApplicationContext
     public TrayApp(bool updated = false)
     {
         _settings = AppSettings.Load(out var settingsError);
+        Models.CatalogUpdater.LoadCached();
         _history = new HistoryStore(() => _settings);
         _icon = LoadIcon();
 
@@ -149,6 +150,10 @@ internal sealed class TrayApp : ApplicationContext
         if (updated)
             Notify("n17 YuHelper updated", $"Now running version {VersionText}. Click to see what's new.", ToolTipIcon.Info,
                 () => OpenUrl(OnlineUpdater.ReleaseUrl(VersionText)));
+
+        // Свежий каталог моделей (ссылки, проверенная сборка llama.cpp) — через полминуты, в фоне.
+        _ = Task.Delay(TimeSpan.FromSeconds(30)).ContinueWith(_ => Models.CatalogUpdater.RefreshAsync()).Unwrap();
+        Log.Info($"Model catalog: {Models.ModelCatalog.Source}, llama.cpp {Models.ModelCatalog.LlamaCppTag}");
 
         // Видеокарту определяем заранее, в фоне (нужно для режима видеопамяти и мастера).
         Task.Run(() => GpuInfo.Detect());
@@ -568,6 +573,14 @@ internal sealed class TrayApp : ApplicationContext
                 _settings.Save();
                 _textServer.Stop("translation model changed");
                 Log.Info("Translation model: " + file);
+            },
+            SetModelsFolder = path =>
+            {
+                _ocrServer.Stop("models folder changed");
+                _textServer.Stop("models folder changed");
+                _settings.ModelsPath = path;
+                _settings.Save();
+                Log.Info("Models folder: " + _settings.ModelsDir);
             },
             SetGpuMode = mode =>
             {

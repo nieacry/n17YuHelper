@@ -2,7 +2,7 @@
 
 Приложение в трее Windows (логика как у ShareX): глобальная клавиша → рамка области экрана или выделенный текст / голос / файл → окно действий: перевод, распознавание текста (OCR) в буфер, проверка грамматики, свои действия. Всё на локальных моделях через llama.cpp.
 
-Текущая версия: **0.13** (см. CHANGELOG.md). Подробности устройства — docs/ARCHITECTURE.md, планы и идеи — docs/ROADMAP.md, для пользователя — README.md.
+Текущая версия: **0.14** (см. CHANGELOG.md). Подробности устройства — docs/ARCHITECTURE.md, планы и идеи — docs/ROADMAP.md, для пользователя — README.md.
 
 ## Правила проекта (обязательно)
 
@@ -44,13 +44,17 @@ dotnet publish src/n17YuHelper/n17YuHelper.csproj -c Release -o /tmp/pub
 
 ## Публичный выпуск (GitHub Releases, Velopack)
 
-Для установленных копий у пользователей. Собирает GitHub Actions (`.github/workflows/release.yml`) на Windows:
-1. Написать `release-notes/X.Y.Z.md` — заметки **на английском** (их видят пользователи; CHANGELOG — по-русски).
-2. Закоммитить, затем `git tag vX.Y.Z && git push origin main vX.Y.Z`.
-3. Workflow: `dotnet publish` → `vpk download github` (прошлый выпуск, для дельта-обновлений) → `vpk pack` → `vpk upload github --publish`. Проверить: `gh run list -R nieacry/n17YuHelper`, `gh release view vX.Y.Z -R nieacry/n17YuHelper`.
-- Создавать релизы из облачной сессии напрямую нельзя (403) — только через тег.
+Для установленных копий у пользователей. Собирает GitHub Actions (`.github/workflows/release.yml`) на Windows.
+1. Написать `release-notes/X.Y.Z.md` — заметки **на английском** (их видят пользователи; CHANGELOG — по-русски). Закоммитить и `git push origin main`.
+2. Запустить сборку: `gh api -X POST repos/nieacry/n17YuHelper/actions/workflows/release.yml/dispatches -f ref=main -f 'inputs[version]=X.Y.Z'`.
+   (Из облачной сессии нельзя пушить теги и создавать релизы напрямую — 403; `gh workflow run` тоже не работает — нет GraphQL.)
+3. Workflow: `dotnet publish` → `vpk download github` (прошлый выпуск, для дельта-обновлений) → `vpk pack` → `vpk upload github --publish` (создаёт тег vX.Y.Z). Проверить: `gh api repos/nieacry/n17YuHelper/actions/runs --jq '.workflow_runs[0]|[.status,.conclusion]'`, `gh api repos/nieacry/n17YuHelper/releases --jq '.[0].tag_name'`.
 - Пакет (packId) — `n17YuHelper`, менять нельзя: по нему находятся обновления.
-- Локально можно проверить упаковку: `vpk "[win]" pack ... -r win-x64` (dotnet tool `vpk` 1.2.161, `DOTNET_ROOT=/opt/dotnet`).
+- Файлы в `.github\` через мост устройства не записываются (защищены) — они только в git.
+
+## Каталог моделей (`catalog.json`)
+
+Программа берёт его из `main` (raw.githubusercontent.com) и применяет, если `format` ≤ `ModelCatalog.SupportedFormat`. Генерируется из встроенного списка (`ModelCatalog.ExportBuiltin()`): меняя модели в `ModelCatalog.cs`, обновить и `catalog.json`. SHA256 брать из API Hugging Face (`/api/models/<repo>/tree/<rev>` → `lfs.oid`), для маленьких файлов — `curl -L … | sha256sum` (без `-L` получится хэш страницы перенаправления). Ссылки — на ревизию (`/resolve/<commit>/`), не на `main`.
 
 ## Что нельзя проверить в облаке
 

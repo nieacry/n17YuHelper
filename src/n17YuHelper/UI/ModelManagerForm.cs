@@ -10,6 +10,8 @@ public sealed class ModelManagerHost
     public required Action<string> UseTextModel { get; init; }
     /// <summary>Режим видеопамяти: Auto, Both, OneAtATime.</summary>
     public required Action<string> SetGpuMode { get; init; }
+    /// <summary>Сменить папку для моделей (полный путь).</summary>
+    public required Action<string> SetModelsFolder { get; init; }
     /// <summary>Выгрузить модели (перед обновлением llama-server или удалением файлов).</summary>
     public required Action StopModels { get; init; }
     public required Icon Icon { get; init; }
@@ -144,6 +146,9 @@ internal sealed class ModelManagerForm : Form
         var openFolder = new ModernButton { Text = "Open models folder", Glyph = "" };
         openFolder.Click += (_, _) => { Directory.CreateDirectory(ModelsDir); System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ModelsDir) { UseShellExecute = true }); };
         bottom.Controls.Add(openFolder);
+        var changeFolder = new ModernButton { Text = "Change models folder...", Glyph = "" };
+        changeFolder.Click += (_, _) => ChangeModelsFolder();
+        bottom.Controls.Add(changeFolder);
 
         Controls.Add(_list);
         Controls.Add(head);
@@ -156,6 +161,36 @@ internal sealed class ModelManagerForm : Form
     }
 
     private static Label InfoLine(string glyph, string text) => new GlyphLabel(glyph, text);
+
+    /// <summary>Модели большие (3–20 ГБ): даём положить их на другой диск.</summary>
+    private void ChangeModelsFolder()
+    {
+        if (_working)
+        {
+            MessageBox.Show(this, "Wait until the download finishes or cancel it first.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+        using var dlg = new FolderBrowserDialog
+        {
+            Description = "Folder for AI models (needs several GB of free space; a local SSD is best)",
+            UseDescriptionForTitle = true,
+            InitialDirectory = Directory.Exists(ModelsDir) ? ModelsDir : AppPaths.DataDir,
+            ShowNewFolderButton = true,
+        };
+        if (dlg.ShowDialog(this) != DialogResult.OK || string.IsNullOrWhiteSpace(dlg.SelectedPath)) return;
+        string old = ModelsDir;
+        string chosen = Path.GetFullPath(dlg.SelectedPath);
+        if (string.Equals(chosen.TrimEnd('\\'), old.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) return;
+
+        bool oldHasModels = ModelCatalog.All.Any(p => p.InstalledSize(old) > 0);
+        _host.SetModelsFolder(chosen);
+        RebuildList();
+        if (oldHasModels)
+            MessageBox.Show(this,
+                $"New models will be downloaded to:\n{chosen}\n\nModels already downloaded stay in:\n{old}\n" +
+                "To keep using them, move the \"ocr\" and \"llm\" folders from there to the new folder.",
+                Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
 
     // ---------------- список моделей ----------------
 
@@ -217,12 +252,14 @@ internal sealed class ModelManagerForm : Form
         var card = RowCard(
             "llama.cpp server",
             $"Runs the models on your graphics card. Build for this PC: {build}.",
-            installed is null ? "Not installed · about 400 MB" : $"Installed: {installed}",
+            (installed is null ? "Not installed · about 400 MB" : $"Installed: {installed}") +
+            (string.IsNullOrEmpty(ModelCatalog.LlamaCppTag) ? "" : $" · tested version: {ModelCatalog.LlamaCppTag}"),
             installed is not null);
 
+        bool upToDate = installed is not null && string.Equals(installed, ModelCatalog.LlamaCppTag, StringComparison.OrdinalIgnoreCase);
         var btn = new ModernButton
         {
-            Text = installed is null ? "Install" : "Update",
+            Text = installed is null ? "Install" : upToDate ? "Reinstall" : string.IsNullOrEmpty(ModelCatalog.LlamaCppTag) ? "Update" : $"Update to {ModelCatalog.LlamaCppTag}",
             Glyph = installed is null ? "" : "",
             Kind = installed is null ? ButtonKind.Accent : ButtonKind.Normal,
         };
