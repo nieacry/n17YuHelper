@@ -2,12 +2,12 @@ using N17YuHelper.Translate;
 
 namespace N17YuHelper.UI;
 
-/// <summary>Что окно настроек просит у программы.</summary>
+/// <summary>What the settings window asks of the app.</summary>
 public sealed class SettingsHost
 {
-    /// <summary>Применить настройки. Возвращает результат регистрации горячих клавиш.</summary>
+    /// <summary>Apply the settings. Returns the hotkey registration result.</summary>
     public required Func<AppSettings, bool, IReadOnlyList<HotkeyStatus>> Apply { get; init; }
-    /// <summary>Отключить глобальные клавиши, пока вводится новая комбинация.</summary>
+    /// <summary>Turn off global hotkeys while a new combination is being entered.</summary>
     public required Action SuspendHotkeys { get; init; }
     public required Action ResumeHotkeys { get; init; }
     public required Action FreeGpu { get; init; }
@@ -15,11 +15,11 @@ public sealed class SettingsHost
     public required Icon Icon { get; init; }
 }
 
-/// <summary>Окно настроек: горячие клавиши (как в ShareX), общие, модели, перевод.</summary>
+/// <summary>Settings window: hotkeys (like in ShareX), general, models, translation.</summary>
 internal sealed class SettingsForm : Form
 {
     private readonly SettingsHost _host;
-    private readonly AppSettings _s;   // рабочая копия
+    private readonly AppSettings _s;   // working copy
     private readonly ToolTip _tips = new() { AutoPopDelay = 15000 };
 
     // Hotkeys
@@ -88,7 +88,7 @@ internal sealed class SettingsForm : Form
         };
         Panel[] pages = [BuildHotkeysTab(), BuildGeneralTab(), BuildModelsTab(), BuildTranslationTab(), BuildActionsTab()];
 
-        // Слева — навигация, справа — заголовок и содержимое раздела.
+        // Navigation on the left, section title and content on the right.
         var nav = new FlowLayoutPanel
         {
             Dock = DockStyle.Left,
@@ -404,7 +404,7 @@ internal sealed class SettingsForm : Form
         {
             AutoSize = true,
             Tag = "dim",
-            Text = "Example:  viewport => вьюпорт     rig => риг     UV => =",
+            Text = "Example:  viewport => в'юпорт     rig => риг     UV => =",
         });
 
         _forgetChoices = new ModernButton { Margin = new Padding(0, 10, 0, 0) };
@@ -494,7 +494,7 @@ internal sealed class SettingsForm : Form
 
     private bool DoApply()
     {
-        // Горячие клавиши
+        // Hotkeys
         var hotkeys = new List<HotkeyEntry>();
         foreach (var row in _hotkeyRows)
         {
@@ -508,7 +508,7 @@ internal sealed class SettingsForm : Form
         }
         _s.Hotkeys = hotkeys;
 
-        // Общие
+        // General
         _s.Theme = _theme.SelectedIndex switch { 1 => "Light", 2 => "Dark", _ => "System" };
         _s.UnloadWhileRunning = Lines(_unloadApps);
         _s.TrayClickSource = _trayClick.SelectedIndex switch { 1 => InputSource.Auto, 2 => InputSource.Clipboard, _ => InputSource.Region };
@@ -525,7 +525,7 @@ internal sealed class SettingsForm : Form
         _s.CheckUpdatesAutomatically = _checkUpdates.Checked;
         _s.InstallUpdatesAutomatically = _installUpdates.Checked;
 
-        // Модели
+        // Models
         _s.ModelsPath = _modelsPath.Text.Trim();
         _s.RuntimePath = _runtimePath.Text.Trim();
         _s.TextModel.ModelFile = _textModel.Text.Trim();
@@ -535,13 +535,13 @@ internal sealed class SettingsForm : Form
         _s.Ocr.PreloadOnHotkey = _preloadOcr.Checked;
         _s.Ocr.UpscaleSmallImages = _upscale.Checked;
 
-        // Свои действия
+        // Custom actions
         _s.CustomActions = _actionRows
             .Select(r => new CustomAction { Name = r.Name.Text.Trim(), Prompt = r.Prompt.Text.Trim() })
             .Where(a => a.Name.Length > 0 && a.Prompt.Length > 0)
             .ToList();
 
-        // Перевод
+        // Translation
         _s.Translation.Glossary = _glossary.Text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         foreach (var (code, combo) in _defaultTargets)
             _s.Translation.DefaultTargets[code] = Languages.All[Math.Max(0, combo.SelectedIndex)].Code;
@@ -642,7 +642,7 @@ internal sealed class SettingsForm : Form
     }
 }
 
-/// <summary>Одна строка списка горячих клавиш.</summary>
+/// <summary>One row of the hotkey list.</summary>
 internal sealed class HotkeyRow : TableLayoutPanel
 {
     private static readonly (string Name, InputSource Value)[] Sources =
@@ -660,7 +660,7 @@ internal sealed class HotkeyRow : TableLayoutPanel
         ("Text as is", HotkeyAction.AsIs),
     ];
 
-    /// <summary>Действия в списке: базовые + свои (Custom с именем).</summary>
+    /// <summary>Actions in the list: built-in + custom (Custom with a name).</summary>
     private readonly List<(string Name, HotkeyAction Value, string Custom)> _actions;
 
     private static readonly (string Name, AfterAction Value)[] Afters =
@@ -717,7 +717,7 @@ internal sealed class HotkeyRow : TableLayoutPanel
 
     private void UpdateTargetEnabled() => _target.Enabled = _actions[Math.Max(0, _action.SelectedIndex)].Value == HotkeyAction.Translate;
 
-    /// <summary>Строка заголовков столбцов.</summary>
+    /// <summary>Column header row.</summary>
     public static Control HeaderRow()
     {
         var t = new TableLayoutPanel();

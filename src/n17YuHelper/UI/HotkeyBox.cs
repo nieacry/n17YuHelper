@@ -1,15 +1,15 @@
 namespace N17YuHelper.UI;
 
 /// <summary>
-/// Поле для ввода горячей клавиши, как в ShareX: щёлкнуть и нажать комбинацию.
-/// Backspace/Delete — очистить, Esc — отменить ввод.
+/// Hotkey input box like in ShareX: click and press the combination.
+/// Backspace/Delete — clear, Esc — cancel input.
 /// </summary>
 internal sealed class HotkeyBox : TextBox
 {
     private string _keys = "";
     private string _before = "";
 
-    /// <summary>Пока поле в фокусе, глобальные клавиши программы надо отключить, иначе они перехватят нажатие.</summary>
+    /// <summary>While the box has focus, the app's global hotkeys must be off, otherwise they would catch the keypress.</summary>
     public event Action? CaptureStarted;
     public event Action? CaptureEnded;
     public event Action? KeysChanged;
@@ -57,7 +57,7 @@ internal sealed class HotkeyBox : TextBox
 
     protected override bool ProcessCmdKey(ref Message msg, System.Windows.Forms.Keys keyData)
     {
-        // Tab оставляем для перехода между полями, остальное ловим сами.
+        // Tab is left for moving between fields; everything else we handle ourselves.
         if ((keyData & System.Windows.Forms.Keys.KeyCode) == System.Windows.Forms.Keys.Tab) return base.ProcessCmdKey(ref msg, keyData);
         return false;
     }
@@ -71,7 +71,7 @@ internal sealed class HotkeyBox : TextBox
 
     protected override void OnKeyUp(KeyEventArgs e)
     {
-        // PrintScreen приходит только как KeyUp.
+        // PrintScreen arrives only as KeyUp.
         if (e.KeyCode == System.Windows.Forms.Keys.PrintScreen)
             HandleKey(e.KeyCode, e.Control, e.Shift, e.Alt);
         e.Handled = true;
@@ -92,7 +92,7 @@ internal sealed class HotkeyBox : TextBox
                 return;
             case System.Windows.Forms.Keys.ControlKey or System.Windows.Forms.Keys.ShiftKey or System.Windows.Forms.Keys.Menu
                 or System.Windows.Forms.Keys.LWin or System.Windows.Forms.Keys.RWin:
-                // Пока нажаты только модификаторы — показываем, что уже зажато.
+                // While only modifiers are pressed — show what is held down.
                 Text = Format(ctrl, shift, alt, WinDown(), null) + "...";
                 return;
         }

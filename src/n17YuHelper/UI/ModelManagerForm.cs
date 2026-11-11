@@ -2,24 +2,24 @@ using N17YuHelper.Models;
 
 namespace N17YuHelper.UI;
 
-/// <summary>Что окну моделей нужно от программы.</summary>
+/// <summary>What the models window needs from the app.</summary>
 public sealed class ModelManagerHost
 {
     public required Func<AppSettings> Settings { get; init; }
-    /// <summary>Сделать модель текущей (путь внутри папки models).</summary>
+    /// <summary>Make a model the current one (path inside the models folder).</summary>
     public required Action<string> UseTextModel { get; init; }
-    /// <summary>Режим видеопамяти: Auto, Both, OneAtATime.</summary>
+    /// <summary>GPU memory mode: Auto, Both, OneAtATime.</summary>
     public required Action<string> SetGpuMode { get; init; }
-    /// <summary>Сменить папку для моделей (полный путь).</summary>
+    /// <summary>Change the models folder (full path).</summary>
     public required Action<string> SetModelsFolder { get; init; }
-    /// <summary>Выгрузить модели (перед обновлением llama-server или удалением файлов).</summary>
+    /// <summary>Unload the models (before updating llama-server or deleting files).</summary>
     public required Action StopModels { get; init; }
     public required Icon Icon { get; init; }
 }
 
 /// <summary>
-/// Менеджер моделей и мастер первого запуска: видеокарта и её память,
-/// рекомендуемые модели, скачивание с прогрессом, удаление, выбор текущей модели.
+/// Model manager and first-run wizard: graphics card and its memory,
+/// recommended models, download with progress, deletion, choosing the current model.
 /// </summary>
 internal sealed class ModelManagerForm : Form
 {
@@ -55,7 +55,7 @@ internal sealed class ModelManagerForm : Form
         MinimumSize = new Size(640, 480);
         KeyPreview = true;
 
-        // ---------- шапка: видеокарта, диск, рекомендация
+        // ---------- header: graphics card, disk, recommendation
         var head = new FlowLayoutPanel
         {
             Dock = DockStyle.Top,
@@ -106,7 +106,7 @@ internal sealed class ModelManagerForm : Form
             head.Controls.Add(_recommendedButton);
         }
 
-        // ---------- режим видеопамяти
+        // ---------- GPU memory mode
         var modeRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 8, 0, 0) };
         modeRow.Controls.Add(new Label { Text = "GPU memory:", AutoSize = true, Padding = new Padding(0, 6, 8, 0) });
         var mode = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 330 };
@@ -116,7 +116,7 @@ internal sealed class ModelManagerForm : Form
         modeRow.Controls.Add(mode);
         head.Controls.Add(modeRow);
 
-        // ---------- список
+        // ---------- list
         _list = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
@@ -127,7 +127,7 @@ internal sealed class ModelManagerForm : Form
         };
         _list.Resize += (_, _) => FitRows();
 
-        // ---------- прогресс
+        // ---------- progress
         _progressPanel = new Panel { Dock = DockStyle.Bottom, Height = 74, Padding = new Padding(20, 8, 20, 12), Visible = false };
         _progressText = new Label { Dock = DockStyle.Top, Height = 24, AutoEllipsis = true };
         _progressBar = new ProgressBarLine { Dock = DockStyle.Top, Height = 6 };
@@ -162,7 +162,7 @@ internal sealed class ModelManagerForm : Form
 
     private static Label InfoLine(string glyph, string text) => new GlyphLabel(glyph, text);
 
-    /// <summary>Модели большие (3–20 ГБ): даём положить их на другой диск.</summary>
+    /// <summary>Models are large (3–20 GB): let the user put them on another drive.</summary>
     private void ChangeModelsFolder()
     {
         if (_working)
@@ -192,7 +192,7 @@ internal sealed class ModelManagerForm : Form
                 Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
-    // ---------------- список моделей ----------------
+    // ---------------- model list ----------------
 
     private void RebuildList()
     {
@@ -289,8 +289,8 @@ internal sealed class ModelManagerForm : Form
             status += !p.HasAudio ? " · no voice input"
                 : p.IsAudioInstalled(ModelsDir) ? " · voice input ✓"
                 : installed ? $" · voice input: not downloaded ({ModelCatalog.FormatSize(p.Audio!.Size)})" : " · with voice input";
-        // Зелёным — рекомендуемая для этого компьютера, красным — те, что не поместятся в видеопамять.
-        // Остальные без отметки.
+        // Green — recommended for this PC, red — models that will not fit into GPU memory.
+        // The rest are unmarked.
         string? verdict = recommended
             ? (_gpu.Vendor == GpuVendor.None ? "★ Recommended for your PC (no dedicated GPU: the smallest model)" : $"★ Recommended for your PC ({vram:0.#} GB GPU memory)")
             : tooBig ? $"✗ Too big: needs more GPU memory than your {vram:0.#} GB, will be very slow"
@@ -305,7 +305,7 @@ internal sealed class ModelManagerForm : Form
             dl.Click += (_, _) => _ = RunAsync(p.Name, async (pr, ct) =>
             {
                 await Downloader.DownloadPackageAsync(p, ModelsDir, pr, ct);
-                // Если текущая модель перевода не скачана — сразу переключаемся на новую.
+                // If the current translation model is not downloaded — switch to the new one right away.
                 if (p.Kind == ModelKind.Text && !File.Exists(Path.Combine(ModelsDir, _host.Settings().TextModel.ModelFile)))
                     _host.UseTextModel(p.MainFile);
             });
@@ -325,7 +325,7 @@ internal sealed class ModelManagerForm : Form
                 voice.Click += (_, _) => _ = RunAsync(p.Name + " voice", async (pr, ct) =>
                 {
                     await Downloader.DownloadFilesAsync(p.Name + " (voice)", [p.Audio!], ModelsDir, pr, ct);
-                    // Аудио-часть подхватится при следующей загрузке модели.
+                    // The audio part is picked up on the next model load.
                     if (inUse) _host.StopModels();
                 });
                 buttons.Add(voice);
@@ -381,10 +381,10 @@ internal sealed class ModelManagerForm : Form
         };
         foreach (var b in buttons) flow.Controls.Add(b);
         card.Controls.Add(flow);
-        flow.SendToBack(); // справа, текст занимает остальное
+        flow.SendToBack(); // on the right, the text takes the rest
     }
 
-    // ---------------- действия ----------------
+    // ---------------- actions ----------------
 
     private async Task DownloadRecommendedAsync(ModelPackage text)
     {
@@ -515,7 +515,7 @@ internal sealed class ModelManagerForm : Form
         return base.ProcessCmdKey(ref msg, keyData);
     }
 
-    /// <summary>Строка со значком слева.</summary>
+    /// <summary>A line with an icon on the left.</summary>
     private sealed class GlyphLabel : Label
     {
         private readonly string _glyph;
@@ -539,7 +539,7 @@ internal sealed class ModelManagerForm : Form
     }
 }
 
-/// <summary>Тонкая полоса прогресса цвета акцента.</summary>
+/// <summary>Thin progress bar in the accent color.</summary>
 internal sealed class ProgressBarLine : Control
 {
     private double _value;

@@ -4,12 +4,12 @@ using N17YuHelper.Llm;
 
 namespace N17YuHelper.Translate;
 
-/// <summary>Перевод текста локальной моделью (Gemma 4 12B) через llama-server.</summary>
+/// <summary>Text translation with a local model (Gemma 4) through llama-server.</summary>
 public sealed class TranslationService(LlamaServer server, Func<AppSettings> settings)
 {
     public LlamaServer Server { get; } = server;
 
-    /// <summary>Язык перевода по умолчанию: последний выбранный вручную, иначе правило из настроек.</summary>
+    /// <summary>Default target language: the last one chosen manually, otherwise the rule from the settings.</summary>
     public Language DefaultTarget(Language source)
     {
         var t = settings().Translation;
@@ -18,7 +18,7 @@ public sealed class TranslationService(LlamaServer server, Func<AppSettings> set
         return source == Languages.English ? Languages.Russian : Languages.English;
     }
 
-    /// <summary>Запоминает выбранный вручную язык перевода.</summary>
+    /// <summary>Remembers the manually chosen target language.</summary>
     public void RememberTarget(Language source, Language target)
     {
         var s = settings();
@@ -27,7 +27,7 @@ public sealed class TranslationService(LlamaServer server, Func<AppSettings> set
         s.Save();
     }
 
-    /// <summary>Текст длиннее этого переводится по частям (абзацами).</summary>
+    /// <summary>Text longer than this is translated in pieces (by paragraphs).</summary>
     public const int ChunkChars = 2000;
 
     public async Task<string> TranslateAsync(string text, Language source, Language target,
@@ -50,14 +50,14 @@ public sealed class TranslationService(LlamaServer server, Func<AppSettings> set
                 ? $"Translating {source.Name} → {target.Name}..."
                 : $"Translating {source.Name} → {target.Name}: part {i + 1} of {chunks.Count}...");
 
-            // Пустые куски (только пробелы) не переводим.
+            // Empty pieces (whitespace only) are not translated.
             if (string.IsNullOrWhiteSpace(chunk.Text))
             {
                 done.Add(chunk.Text);
             }
             else
             {
-                // Пробелы в начале куска (отступы) сохраняем как были.
+                // Leading spaces of a piece (indentation) are kept as they were.
                 string lead = chunk.Text[..(chunk.Text.Length - chunk.Text.TrimStart().Length)];
                 if (lead.Length > 0) onDelta?.Invoke(lead);
                 var glossary = GlossaryFor(chunk.Text, settings().Translation.Glossary);
@@ -82,8 +82,8 @@ public sealed class TranslationService(LlamaServer server, Func<AppSettings> set
     }
 
     /// <summary>
-    /// Переводит список абзацев документа за один запрос (ответ — JSON того же размера).
-    /// Теги &lt;1&gt;…&lt;/1&gt; отмечают части с разным оформлением и должны остаться на месте.
+    /// Translates a list of document paragraphs in one request (the reply is JSON of the same size).
+    /// Tags &lt;1&gt;…&lt;/1&gt; mark parts with different formatting and must stay in place.
     /// </summary>
     public async Task<IReadOnlyList<string>> TranslateBatchAsync(IReadOnlyList<string> items, Language source, Language target, CancellationToken ct)
     {
@@ -139,7 +139,7 @@ public sealed class TranslationService(LlamaServer server, Func<AppSettings> set
             Log.Info("Batch translation: bad JSON, translating one by one: " + ex.Message);
         }
 
-        // Запасной путь: по одному абзацу.
+        // Fallback: one paragraph at a time.
         var list = new List<string>(items.Count);
         foreach (var item in items)
             list.Add(await TranslateAsync(item, source, target, null, null, ct));
@@ -152,8 +152,8 @@ public sealed class TranslationService(LlamaServer server, Func<AppSettings> set
     };
 
     /// <summary>
-    /// Термины из словаря, которые встречаются в тексте (в любую сторону):
-    /// «rig => риг» сработает и для «rig» в английском, и для «риг» в русском тексте.
+    /// Glossary terms that occur in the text (in either direction):
+    /// "rig => риг" works both for "rig" in English text and for "риг" in Cyrillic text.
     /// </summary>
     public static string GlossaryFor(string text, IEnumerable<string> lines)
     {

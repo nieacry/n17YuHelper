@@ -3,8 +3,8 @@ namespace N17YuHelper.UI;
 public sealed record HistoryItem(DateTime Time, string Kind, string Source, string Result);
 
 /// <summary>
-/// Последние результаты. Если включено — хранятся в history.json в папке данных
-/// (читаются при первом обращении, а не при запуске, чтобы не занимать память в трее).
+/// Recent results. If enabled, they are kept in history.json in the data folder
+/// (read on first access rather than at startup, so they take no memory while in the tray).
 /// </summary>
 public sealed class HistoryStore(Func<AppSettings> settings)
 {
@@ -27,7 +27,7 @@ public sealed class HistoryStore(Func<AppSettings> settings)
     private List<HistoryItem> Loaded()
     {
         if (_items is not null) return _items;
-        try { _pending.Wait(2000); } catch { /* ошибка записи уже в журнале */ }
+        try { _pending.Wait(2000); } catch { /* the write error is already logged */ }
         _items = [];
         if (settings().SaveHistory && File.Exists(FilePath))
         {
@@ -71,7 +71,7 @@ public sealed class HistoryStore(Func<AppSettings> settings)
         Persist();
     }
 
-    /// <summary>Записывает файл в фоне. Если хранение выключено — удаляет файл.</summary>
+    /// <summary>Writes the file in the background. If saving is off, deletes the file.</summary>
     private void Persist()
     {
         bool save = settings().SaveHistory;
@@ -99,17 +99,17 @@ public sealed class HistoryStore(Func<AppSettings> settings)
         });
     }
 
-    /// <summary>Настройку поменяли: выключили — удалить файл, включили — записать текущую историю.</summary>
+    /// <summary>The setting changed: turned off — delete the file, turned on — write the current history.</summary>
     public void SettingsChanged() => Persist();
 
-    /// <summary>Отпустить историю из памяти (она прочитается снова, когда понадобится).</summary>
+    /// <summary>Release the history from memory (it will be read again when needed).</summary>
     public void Unload()
     {
         if (settings().SaveHistory) _items = null;
     }
 }
 
-/// <summary>Окно истории: двойной клик или Enter — скопировать результат.</summary>
+/// <summary>History window: double-click or Enter copies the result.</summary>
 internal sealed class HistoryForm : Form
 {
     private readonly HistoryStore _store;

@@ -4,8 +4,8 @@ using System.Runtime.InteropServices;
 namespace N17YuHelper.Llm;
 
 /// <summary>
-/// Windows Job Object с флагом KILL_ON_JOB_CLOSE: если программа закроется или упадёт,
-/// Windows сама завершит все llama-server, и они не останутся висеть в видеопамяти.
+/// Windows Job Object with KILL_ON_JOB_CLOSE: if the app exits or crashes,
+/// Windows terminates all llama-server processes so they do not linger in GPU memory.
 /// </summary>
 internal sealed class JobObject : IDisposable
 {

@@ -1,6 +1,6 @@
 # n17 YuHelper
 
-**English** · [Русский](README.ru.md)
+**English** · [Українська](README.uk.md)
 
 A Windows tray app in the spirit of ShareX: press a hotkey, select a screen region, take the selected text or just speak — and **recognize, translate or proofread** it with AI models that run **on your own computer** (llama.cpp). Nothing is sent to the internet.
 
@@ -67,4 +67,4 @@ Tray menu → **Settings...**. Everything is stored in `settings.json` in the da
 
 ## Building from source
 
-.NET 10 SDK: `dotnet publish src/n17YuHelper/n17YuHelper.csproj -c Release -o publish`. Developer notes (in Russian): [CLAUDE.md](CLAUDE.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+.NET 10 SDK: `dotnet publish src/n17YuHelper/n17YuHelper.csproj -c Release -o publish`. Developer notes: [CLAUDE.md](CLAUDE.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

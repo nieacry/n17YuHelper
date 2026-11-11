@@ -1,21 +1,21 @@
 namespace N17YuHelper;
 
 /// <summary>
-/// Получает текст, выделенный в любой программе: отправляет Ctrl+C,
-/// проверяет, изменился ли буфер, и возвращает прежнее содержимое буфера.
-/// Работает в UI-потоке (буфер обмена требует STA).
+/// Gets the text selected in any app: sends Ctrl+C,
+/// checks whether the clipboard changed and restores the previous clipboard contents.
+/// Runs on the UI thread (the clipboard requires STA).
 /// </summary>
 public static class SelectionGrabber
 {
     private static readonly int[] Modifiers =
         [Native.VK_CONTROL, Native.VK_SHIFT, Native.VK_MENU, Native.VK_LWIN, Native.VK_RWIN];
 
-    /// <summary>Возвращает выделенный текст или null, если ничего не выделено.</summary>
+    /// <summary>Returns the selected text, or null if nothing is selected.</summary>
     public static async Task<string?> TryGetSelectedTextAsync(uint hotkeyVk, AppSettings settings)
     {
         int timeoutMs = settings.SelectionCopyTimeoutMs;
 
-        // 0. В какой программе выделение.
+        // 0. Which app holds the selection.
         string process = ForegroundProcessName();
         if (settings.NeverCopyProcesses.Contains(process, StringComparer.OrdinalIgnoreCase))
         {
@@ -24,18 +24,18 @@ public static class SelectionGrabber
         }
         bool useCtrlInsert = settings.CopyWithCtrlInsertProcesses.Contains(process, StringComparer.OrdinalIgnoreCase);
 
-        // 1. Ждём, пока пользователь отпустит клавиши. Иначе Ctrl+C превратится, например,
-        //    в Win+Ctrl+C, а после отпускания Win может открыться «Пуск».
+        // 1. Wait until the user releases the keys. Otherwise Ctrl+C would become, e.g.,
+        //    Win+Ctrl+C, and releasing Win might open Start.
         await WaitForKeysReleasedAsync(hotkeyVk, maxWaitMs: 2000);
 
-        // 2. Сохраняем буфер.
+        // 2. Save the clipboard.
         var saved = ClipboardBackup.Capture();
         uint seqBefore = Native.GetClipboardSequenceNumber();
 
-        // 3. Ctrl+C (или Ctrl+Insert в терминалах).
+        // 3. Ctrl+C (or Ctrl+Insert in terminals).
         SendCopy(useCtrlInsert ? (byte)0x2D /* VK_INSERT */ : (byte)0x43 /* C */);
 
-        // 4. Ждём, пока программа положит текст в буфер.
+        // 4. Wait until the app puts the text into the clipboard.
         string? text = null;
         var sw = System.Diagnostics.Stopwatch.StartNew();
         while (sw.ElapsedMilliseconds < timeoutMs)
@@ -43,14 +43,14 @@ public static class SelectionGrabber
             await Task.Delay(15);
             if (Native.GetClipboardSequenceNumber() != seqBefore)
             {
-                // Некоторые программы пишут в буфер в несколько приёмов — даём им закончить.
+                // Some apps write to the clipboard in several steps — let them finish.
                 await Task.Delay(30);
                 text = TryGetText();
                 break;
             }
         }
 
-        // 5. Возвращаем прежнее содержимое буфера, если он менялся.
+        // 5. Restore the previous clipboard contents if it changed.
         if (Native.GetClipboardSequenceNumber() != seqBefore)
             saved.Restore();
 
@@ -78,7 +78,7 @@ public static class SelectionGrabber
     private static void SendCopy(byte key)
     {
         const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
-        uint ext = key == 0x2D ? KEYEVENTF_EXTENDEDKEY : 0; // Insert — расширенная клавиша
+        uint ext = key == 0x2D ? KEYEVENTF_EXTENDEDKEY : 0; // Insert is an extended key
         Native.keybd_event(Native.VK_CONTROL, 0, 0, UIntPtr.Zero);
         Native.keybd_event(key, 0, ext, UIntPtr.Zero);
         Native.keybd_event(key, 0, ext | Native.KEYEVENTF_KEYUP, UIntPtr.Zero);
@@ -113,14 +113,14 @@ public static class SelectionGrabber
             }
             catch (System.Runtime.InteropServices.ExternalException)
             {
-                Thread.Sleep(20); // буфер занят другой программой
+                Thread.Sleep(20); // the clipboard is held by another app
             }
         }
         return null;
     }
 }
 
-/// <summary>Копия содержимого буфера обмена, которую можно вернуть на место.</summary>
+/// <summary>A copy of the clipboard contents that can be put back.</summary>
 public sealed class ClipboardBackup
 {
     private readonly DataObject? _data;
@@ -151,7 +151,7 @@ public sealed class ClipboardBackup
                     }
                     catch
                     {
-                        // Некоторые форматы нельзя прочитать — пропускаем.
+                        // Some formats cannot be read — skip them.
                     }
                 }
                 return new ClipboardBackup(count > 0 ? copy : null);

@@ -9,10 +9,10 @@ public enum ModelKind
     Text,
 }
 
-/// <summary>Файл модели: откуда качать, куда положить (относительно папки models), размер и SHA256 (если известен).</summary>
+/// <summary>Model file: where to download it from, where to put it (relative to the models folder), size and SHA256 (if known).</summary>
 public sealed record ModelFile(string Url, string RelativePath, long Size, string? Sha256 = null);
 
-/// <summary>Модель, которую можно скачать: один или несколько файлов в папке models.</summary>
+/// <summary>A downloadable model: one or more files in the models folder.</summary>
 public sealed record ModelPackage(
     string Id,
     ModelKind Kind,
@@ -22,7 +22,7 @@ public sealed record ModelPackage(
     IReadOnlyList<ModelFile> Files,
     ModelFile? Audio = null)
 {
-    /// <summary>Все файлы: модель и (если есть) аудио-часть для голосового ввода.</summary>
+    /// <summary>All files: the model and (if any) the audio part for voice input.</summary>
     public IReadOnlyList<ModelFile> AllFiles => Audio is null ? Files : [.. Files, Audio];
 
     public long TotalSize => AllFiles.Sum(f => f.Size);
@@ -32,7 +32,7 @@ public sealed record ModelPackage(
     public bool IsAudioInstalled(string modelsDir) =>
         Audio is not null && File.Exists(Path.Combine(modelsDir, Audio.RelativePath));
 
-    /// <summary>Главный файл модели (относительно папки models) — его прописываем в настройки.</summary>
+    /// <summary>Main model file (relative to the models folder) — this is what goes into the settings.</summary>
     public string MainFile => Files[0].RelativePath;
 
     public bool IsInstalled(string modelsDir) =>
@@ -43,16 +43,16 @@ public sealed record ModelPackage(
 }
 
 /// <summary>
-/// Что можно скачать и что советовать под объём видеопамяти.
+/// What can be downloaded and what to recommend for the amount of GPU memory.
 ///
-/// Встроенный список — запасной. Свежий каталог лежит в репозитории (catalog.json) и скачивается
-/// при запуске (<see cref="CatalogUpdater"/>): так можно поправить ссылки, добавить модель или
-/// сменить проверенную сборку llama.cpp без выпуска новой версии программы.
-/// Ссылки на Hugging Face закреплены на конкретной ревизии, у каждого файла есть SHA256.
+/// The built-in list is a fallback. The fresh catalog lives in the repository (catalog.json) and is downloaded
+/// at startup (<see cref="CatalogUpdater"/>): links can be fixed, models added or
+/// the tested llama.cpp build changed without releasing a new app version.
+/// Hugging Face links are pinned to a specific revision; every file has a SHA256.
 /// </summary>
 public static class ModelCatalog
 {
-    /// <summary>Какой формат catalog.json понимает эта версия программы.</summary>
+    /// <summary>Which catalog.json format this app version understands.</summary>
     public const int SupportedFormat = 1;
 
     private const string HF = "https://huggingface.co";
@@ -106,7 +106,7 @@ public static class ModelCatalog
             [F("google/gemma-4-31B-it-qat-q4_0-gguf", "59dde24573e7e61570dba08b18a2e1fe246955ed", "gemma-4-31B_q4_0-it.gguf", @"llm\gemma-4-31b-qat", 17_651_001_568, "179cfb99212709597eae5929112cfca677e1bbf566178b479ae1da0c4772874b")]),
     ];
 
-    /// <summary>Рекомендации по видеопамяти: от большей к меньшей (ГБ → id модели).</summary>
+    /// <summary>Recommendations by GPU memory: from larger to smaller (GB → model id).</summary>
     private static readonly IReadOnlyList<(double MinVramGb, string Id)> BuiltinRecommend =
     [
         (23, "gemma-4-31b-qat"),
@@ -116,7 +116,7 @@ public static class ModelCatalog
         (0, "gemma-4-e2b"),
     ];
 
-    /// <summary>Проверенная сборка llama.cpp (тег релиза ggml-org/llama.cpp).</summary>
+    /// <summary>Tested llama.cpp build (ggml-org/llama.cpp release tag).</summary>
     public const string BuiltinLlamaCppTag = "b12248";
 
     private static IReadOnlyList<ModelPackage> _all = Builtin;
@@ -124,10 +124,10 @@ public static class ModelCatalog
 
     public static IReadOnlyList<ModelPackage> All => _all;
 
-    /// <summary>Тег сборки llama.cpp, которую ставить (из каталога). Пусто — самая свежая.</summary>
+    /// <summary>llama.cpp build tag to install (from the catalog). Empty — the newest.</summary>
     public static string LlamaCppTag { get; private set; } = BuiltinLlamaCppTag;
 
-    /// <summary>Откуда взят каталог: "built-in" или дата catalog.json.</summary>
+    /// <summary>Where the catalog came from: "built-in" or the catalog.json date.</summary>
     public static string Source { get; private set; } = "built-in";
 
     public const string OcrId = "ocr-paddleocr-vl-1.6";
@@ -139,7 +139,7 @@ public static class ModelCatalog
     public static ModelPackage? ByMainFile(string relativePath) =>
         _all.FirstOrDefault(p => string.Equals(p.MainFile, relativePath, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Лучшая текстовая модель под объём видеопамяти (с учётом, что модель распознавания тоже нужна).</summary>
+    /// <summary>Best text model for the amount of GPU memory (taking into account that the OCR model is needed too).</summary>
     public static ModelPackage RecommendedText(GpuInfo gpu)
     {
         double gb = gpu.Vendor == GpuVendor.None ? 0 : gpu.VramGb;
@@ -148,7 +148,7 @@ public static class ModelCatalog
         return _all.Where(p => p.Kind == ModelKind.Text).MinBy(p => p.VramGb) ?? Builtin[1];
     }
 
-    /// <summary>Сколько видеопамяти нужно модели (из каталога или по размеру файла).</summary>
+    /// <summary>How much GPU memory a model needs (from the catalog or by file size).</summary>
     public static double VramNeeded(string modelsDir, string relativeModelFile, double fallbackGb)
     {
         if (ByMainFile(relativeModelFile) is { } p) return p.VramGb;
@@ -172,8 +172,8 @@ public static class ModelCatalog
     };
 
     /// <summary>
-    /// Применяет catalog.json. Возвращает текст ошибки или null.
-    /// Каталог с неизвестным форматом или без модели распознавания не применяется.
+    /// Applies catalog.json. Returns an error text or null.
+    /// A catalog with an unknown format or without the OCR model is not applied.
     /// </summary>
     public static string? Apply(string json, string source)
     {
@@ -207,7 +207,7 @@ public static class ModelCatalog
         }
     }
 
-    /// <summary>Только https и путь внутри папки models (без «..» и абсолютных путей).</summary>
+    /// <summary>Only https and a path inside the models folder (no ".." and no absolute paths).</summary>
     private static bool IsSafeFile(CatalogFile f) =>
         Uri.TryCreate(f.Url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps &&
         !string.IsNullOrWhiteSpace(f.Path) && !Path.IsPathRooted(f.Path) &&
@@ -216,7 +216,7 @@ public static class ModelCatalog
     private static ModelFile ToFile(CatalogFile f) =>
         new(f.Url, f.Path.Replace('/', '\\'), f.Size, string.IsNullOrWhiteSpace(f.Sha256) ? null : f.Sha256.ToLowerInvariant());
 
-    /// <summary>Встроенный каталог в формате catalog.json (для файла в репозитории).</summary>
+    /// <summary>Built-in catalog in catalog.json format (for the file in the repository).</summary>
     public static string ExportBuiltin() => JsonSerializer.Serialize(new CatalogDocument
     {
         Format = SupportedFormat,
@@ -234,7 +234,7 @@ public static class ModelCatalog
         new() { Url = f.Url, Path = f.RelativePath.Replace('\\', '/'), Size = f.Size, Sha256 = f.Sha256 };
 }
 
-// ---------------- формат catalog.json ----------------
+// ---------------- catalog.json format ----------------
 
 internal sealed class CatalogDocument
 {
@@ -246,7 +246,7 @@ internal sealed class CatalogDocument
 
 internal sealed class CatalogLlama
 {
-    /// <summary>Тег релиза ggml-org/llama.cpp, например b12248. Пусто — самая свежая сборка.</summary>
+    /// <summary>ggml-org/llama.cpp release tag, e.g. b12248. Empty — the newest build.</summary>
     public string? Tag { get; set; }
 }
 

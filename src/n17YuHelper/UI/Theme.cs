@@ -4,8 +4,8 @@ using Microsoft.Win32;
 namespace N17YuHelper.UI;
 
 /// <summary>
-/// Оформление: светлая / тёмная / как в Windows, цвет акцента Windows,
-/// тёмный заголовок и скруглённые углы окон (Windows 11).
+/// Theme: light / dark / as in Windows, Windows accent color,
+/// dark title bar and rounded window corners (Windows 11).
 /// </summary>
 public static class Theme
 {
@@ -27,12 +27,12 @@ public static class Theme
     public static Color InsertBack => IsDark ? Color.FromArgb(32, 72, 40) : Color.FromArgb(221, 244, 224);
 
     public static string FontName { get; private set; } = "Segoe UI";
-    /// <summary>Шрифт значков Windows (Segoe Fluent Icons на Windows 11, Segoe MDL2 Assets на Windows 10).</summary>
+    /// <summary>Windows icon font (Segoe Fluent Icons on Windows 11, Segoe MDL2 Assets on Windows 10).</summary>
     public static string IconFontName { get; private set; } = "Segoe MDL2 Assets";
     public static Font IconFont(float size = 10f) => new(IconFontName, size);
     public static Font UiFont(float size = 9.5f, FontStyle style = FontStyle.Regular) => new(FontName, size, style);
 
-    /// <summary>Вызывать один раз до создания окон. mode: System, Light, Dark.</summary>
+    /// <summary>Call once before creating windows. mode: System, Light, Dark.</summary>
     public static void Init(string? mode)
     {
         mode ??= "System";
@@ -52,7 +52,7 @@ public static class Theme
             Border = Color.FromArgb(64, 64, 64);
             Text = Color.FromArgb(242, 242, 242);
             TextDim = Color.FromArgb(160, 160, 160);
-            // В тёмной теме акцент делаем светлее, чтобы читался.
+            // In the dark theme the accent is made lighter so it stays readable.
             Accent = Lighten(Accent, 0.25);
         }
         else
@@ -70,14 +70,14 @@ public static class Theme
         AccentText = Luminance(Accent) > 0.55 ? Color.Black : Color.White;
     }
 
-    /// <summary>Режим цвета для стандартных контролов WinForms (.NET 10).</summary>
+    /// <summary>Color mode for standard WinForms controls (.NET 10).</summary>
 #pragma warning disable WFO5001
     public static SystemColorMode ColorMode => IsDark ? SystemColorMode.Dark : SystemColorMode.Classic;
 #pragma warning restore WFO5001
 
-    // ------------------------------------------------------------------ окна
+    // ------------------------------------------------------------------ windows
 
-    /// <summary>Тёмный/светлый заголовок, скруглённые углы и цвет рамки (Windows 11; на Windows 10 тихо игнорируется).</summary>
+    /// <summary>Dark/light title bar, rounded corners and border color (Windows 11; silently ignored on Windows 10).</summary>
     public static void ApplyWindow(Form form)
     {
         form.BackColor = Bg;
@@ -102,11 +102,11 @@ public static class Theme
         }
         catch
         {
-            // старая Windows — без украшений
+            // older Windows — no decorations
         }
     }
 
-    /// <summary>Перекрашивает стандартные контролы внутри (рекурсивно).</summary>
+    /// <summary>Recolors standard controls inside (recursively).</summary>
     public static void ApplyTo(Control root)
     {
         foreach (Control c in root.Controls)
@@ -175,7 +175,7 @@ public static class Theme
         public override Color CheckPressedBackground => Color.FromArgb(110, Accent);
     }
 
-    // ------------------------------------------------------------------ рисование
+    // ------------------------------------------------------------------ painting
 
     public static System.Drawing.Drawing2D.GraphicsPath RoundRect(RectangleF r, float radius)
     {
@@ -190,7 +190,7 @@ public static class Theme
         return path;
     }
 
-    // ------------------------------------------------------------------ системные настройки
+    // ------------------------------------------------------------------ system settings
 
     private static bool WindowsUsesDarkTheme()
     {
@@ -213,7 +213,7 @@ public static class Theme
                 return Color.FromArgb(255, (int)(v & 0xFF), (int)((v >> 8) & 0xFF), (int)((v >> 16) & 0xFF));
             }
         }
-        catch { /* нет ключа */ }
+        catch { /* no such key */ }
         return null;
     }
 

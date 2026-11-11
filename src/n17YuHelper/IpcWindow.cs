@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 namespace N17YuHelper;
 
 /// <summary>
-/// Скрытое окно для связи между копиями программы: второй запуск с файлом в командной строке
-/// («Отправить» в Проводнике) передаёт путь уже запущенной программе и сразу завершается.
+/// Hidden window for communication between app instances: a second start with a file on the command line
+/// (Explorer "Send to") passes the path to the running instance and exits immediately.
 /// </summary>
 internal sealed class IpcWindow : NativeWindow, IDisposable
 {
@@ -36,7 +36,7 @@ internal sealed class IpcWindow : NativeWindow, IDisposable
         base.WndProc(ref m);
     }
 
-    /// <summary>Передаёт путь к файлу запущенной копии. False — её окно не найдено.</summary>
+    /// <summary>Passes a file path to the running instance. False — its window was not found.</summary>
     public static bool SendFile(string path)
     {
         var hwnd = FindWindowEx(HWND_MESSAGE, IntPtr.Zero, null, WindowName);
@@ -45,7 +45,7 @@ internal sealed class IpcWindow : NativeWindow, IDisposable
         try
         {
             var data = new COPYDATASTRUCT { dwData = OpenFileMarker, cbData = (path.Length + 1) * 2, lpData = buffer };
-            AllowSetForegroundWindow(-1); // наше окно должно суметь выйти на передний план
+            AllowSetForegroundWindow(-1); // our window must be able to come to the foreground
             return SendMessage(hwnd, WM_COPYDATA, IntPtr.Zero, ref data) != IntPtr.Zero;
         }
         finally

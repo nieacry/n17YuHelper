@@ -2,13 +2,13 @@ namespace N17YuHelper.Translate;
 
 public sealed record Language(string Code, string Name, string PromptName)
 {
-    /// <summary>Тег языка для документов Office (проверка орфографии).</summary>
+    /// <summary>Language tag for Office documents (spell checking).</summary>
     public string Tag => Code switch { "en" => "en-US", "ru" => "ru-RU", "uk" => "uk-UA", "zh" => "zh-CN", _ => Code };
 
     public override string ToString() => Name;
 }
 
-/// <summary>Поддерживаемые языки и быстрое определение языка текста без модели.</summary>
+/// <summary>Supported languages and fast detection of the text language without a model.</summary>
 public static class Languages
 {
     public static readonly Language English = new("en", "English", "English");
@@ -22,8 +22,8 @@ public static class Languages
         All.FirstOrDefault(l => string.Equals(l.Code, code, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// Определяет язык по буквам: иероглифы → китайский; кириллица → украинский,
-    /// если есть і/ї/є/ґ (и их больше, чем ы/э/ъ/ё), иначе русский; латиница → английский.
+    /// Detects the language by letters: CJK characters → Chinese; Cyrillic → Ukrainian
+    /// if it has і/ї/є/ґ (more of them than ы/э/ъ/ё), otherwise Russian; Latin → English.
     /// </summary>
     public static Language Detect(string text)
     {
@@ -42,7 +42,7 @@ public static class Languages
                 latin++;
         }
 
-        // Иероглиф несёт больше смысла, чем буква, поэтому им хватает меньшей доли.
+        // A CJK character carries more meaning than a letter, so a smaller share is enough.
         if (cjk > 0 && cjk * 3 >= cyr + latin) return Chinese;
         if (cyr > latin) return ukOnly > ruOnly ? Ukrainian : Russian;
         return English;

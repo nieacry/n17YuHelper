@@ -4,7 +4,7 @@ using N17YuHelper.Llm;
 
 namespace N17YuHelper.Translate;
 
-/// <summary>Свои действия: текст + указание пользователя → ответ модели (по мере генерации).</summary>
+/// <summary>Custom actions: text + user instruction → model reply (streamed).</summary>
 public sealed class PromptService(LlamaServer server, Func<AppSettings> settings)
 {
     public async Task<string> RunAsync(CustomAction action, string text, Action<string>? onDelta, IProgress<string>? progress, CancellationToken ct)

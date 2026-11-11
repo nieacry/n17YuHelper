@@ -5,9 +5,9 @@ using N17YuHelper.Voice;
 namespace N17YuHelper.UI;
 
 /// <summary>
-/// Запись голоса: плашка внизу экрана с уровнем звука и таймером. Фокус не забирает —
-/// диктовать можно прямо в окно программы. Закончить: та же клавиша ещё раз, кнопка ■ или пауза в речи.
-/// Esc — отменить.
+/// Voice recording: a bar at the bottom of the screen with the sound level and a timer. It does not take focus —
+/// you can dictate straight into an app window. Finish: the same hotkey again, the ■ button or a pause in speech.
+/// Esc — cancel.
 /// </summary>
 internal sealed class RecordingToast : Form
 {
@@ -29,7 +29,7 @@ internal sealed class RecordingToast : Form
     private bool _hover;
     private bool _finished;
 
-    // Определение конца речи (в фоновом потоке записи).
+    // End-of-speech detection (on the background recording thread).
     private float _noise = -1;
     private bool _heardSpeech;
     private DateTime _lastSpeech = DateTime.UtcNow;
@@ -60,7 +60,7 @@ internal sealed class RecordingToast : Form
         _recorder.Level += OnLevel;
     }
 
-    /// <summary>Записывает, пока не закончат. Возвращает PCM 16 кГц или null, если отменили.</summary>
+    /// <summary>Records until finished. Returns 16 kHz PCM, or null if cancelled.</summary>
     public Task<byte[]?> RecordAsync()
     {
         try
@@ -75,7 +75,7 @@ internal sealed class RecordingToast : Form
         var area = Screen.FromPoint(Cursor.Position).WorkingArea;
         Location = new Point(area.Left + (area.Width - Width) / 2, area.Bottom - Height - 56);
         Show();
-        // После показа размер уже учитывает масштаб экрана — ставим точно по центру снизу.
+        // After showing, the size already accounts for display scaling — place it exactly at the bottom center.
         Location = new Point(area.Left + (area.Width - Width) / 2, area.Bottom - Height - (int)(56 * DeviceDpi / 96f));
         _ui.Start();
         return _done.Task;
@@ -83,10 +83,10 @@ internal sealed class RecordingToast : Form
 
     public bool IsRecording => !_finished;
 
-    /// <summary>Закончить запись и отдать звук на распознавание.</summary>
+    /// <summary>Finish recording and send the audio for recognition.</summary>
     public void Finish() => Complete(cancel: false);
 
-    /// <summary>Отменить запись.</summary>
+    /// <summary>Cancel recording.</summary>
     public void Cancel() => Complete(cancel: true);
 
     private void Complete(bool cancel)
@@ -104,7 +104,7 @@ internal sealed class RecordingToast : Form
     private void OnLevel(float rms)
     {
         _lastLevel = rms;
-        // Шум — медленно подстраиваемый минимум; речь — заметно громче шума.
+        // Noise — a slowly adapting minimum; speech — noticeably louder than the noise.
         if (_noise < 0) _noise = rms;
         else if (rms < _noise) _noise = rms;
         else _noise += (rms - _noise) * 0.002f;
@@ -123,12 +123,12 @@ internal sealed class RecordingToast : Form
         double silence = (now - _lastSpeech).TotalSeconds;
         double elapsed = (now - _started).TotalSeconds;
         if (_settings.AutoStopSilenceSeconds > 0 && _heardSpeech && silence > _settings.AutoStopSilenceSeconds) { Finish(); return; }
-        if (!_heardSpeech && elapsed > 15) { Finish(); return; } // ничего не сказали — распознавать нечего
+        if (!_heardSpeech && elapsed > 15) { Finish(); return; } // nothing was said — nothing to recognize
         if (elapsed > Math.Max(5, _settings.MaxSeconds)) { Finish(); return; }
         Invalidate();
     }
 
-    // ---------------- рисование ----------------
+    // ---------------- painting ----------------
 
     private float S(float v) => v * DeviceDpi / 96f;
 
@@ -141,7 +141,7 @@ internal sealed class RecordingToast : Form
         g.Clear(Theme.Surface);
         using (var pen = new Pen(Theme.Border)) g.DrawRectangle(pen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
 
-        // Микрофон: круг акцента, «дышит» в такт голосу.
+        // Microphone: accent circle that "breathes" with the voice.
         float level = Math.Clamp(_lastLevel * 8, 0, 1);
         float cx = S(34), cy = ClientSize.Height / 2f;
         float halo = S(18) + S(8) * level;
@@ -151,7 +151,7 @@ internal sealed class RecordingToast : Form
             TextRenderer.DrawText(g, "", icon, new Rectangle((int)(cx - S(16)), (int)(cy - S(16)), (int)S(32), (int)S(32)),
                 Theme.AccentText, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-        // Текст и таймер.
+        // Text and timer.
         var t = DateTime.UtcNow - _started;
         float x = S(64);
         using (var bold = Theme.UiFont(10f, FontStyle.Bold))
@@ -159,7 +159,7 @@ internal sealed class RecordingToast : Form
         using (var small = Theme.UiFont(8.5f))
             TextRenderer.DrawText(g, _hint, small, new Point((int)x, (int)S(38)), Theme.TextDim);
 
-        // Уровень звука: столбики справа от заголовка.
+        // Sound level: bars to the right of the title.
         float barsRight = StopRect.Left - S(14), barW = S(3), gap = S(2);
         int n = (int)Math.Min(_levels.Length, (barsRight - S(230)) / (barW + gap));
         using (var b = new SolidBrush(Theme.Accent))
@@ -173,7 +173,7 @@ internal sealed class RecordingToast : Form
             }
         }
 
-        // Кнопка «закончить».
+        // "Finish" button.
         var r = StopRect;
         using (var b = new SolidBrush(_hover ? Theme.Hover : Theme.SurfaceAlt)) g.FillEllipse(b, r);
         using (var b = new SolidBrush(Theme.Danger))
@@ -200,7 +200,7 @@ internal sealed class RecordingToast : Form
         if (e.Button == MouseButtons.Left && StopRect.Contains(e.Location)) Finish();
     }
 
-    // ---------------- окно без фокуса ----------------
+    // ---------------- window without focus ----------------
 
     protected override bool ShowWithoutActivation => true;
 

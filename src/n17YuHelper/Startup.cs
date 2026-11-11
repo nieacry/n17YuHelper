@@ -2,7 +2,7 @@ using Microsoft.Win32;
 
 namespace N17YuHelper;
 
-/// <summary>Автозапуск с Windows через HKCU\...\Run (без прав администратора).</summary>
+/// <summary>Start with Windows via HKCU\...\Run (no admin rights).</summary>
 public static class Startup
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -10,7 +10,7 @@ public static class Startup
 
     private static string ExePath => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "n17YuHelper.exe");
 
-    /// <summary>Путь, записанный в автозапуск, или null.</summary>
+    /// <summary>Path written to the startup entry, or null.</summary>
     public static string? RegisteredPath
     {
         get
@@ -22,7 +22,7 @@ public static class Startup
 
     public static bool IsEnabled => RegisteredPath is not null;
 
-    /// <summary>Автозапуск включён именно для этого exe.</summary>
+    /// <summary>Start with Windows is enabled for this very exe.</summary>
     public static bool IsEnabledForThisExe =>
         RegisteredPath is { } p && string.Equals(Path.GetFullPath(p), Path.GetFullPath(ExePath), StringComparison.OrdinalIgnoreCase);
 
@@ -40,7 +40,7 @@ public static class Startup
         Log.Info("Start with Windows: off");
     }
 
-    /// <summary>Если exe перенесли, а в автозапуске остался несуществующий путь — обновляем его.</summary>
+    /// <summary>If the exe was moved and the startup entry points to a missing path — update it.</summary>
     public static void FixStalePath()
     {
         try

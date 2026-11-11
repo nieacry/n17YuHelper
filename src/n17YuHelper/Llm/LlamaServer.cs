@@ -12,21 +12,21 @@ public enum ServerState
     Failed,
 }
 
-/// <summary>Ошибка настройки: нет llama-server.exe или файла модели.</summary>
+/// <summary>Configuration error: llama-server.exe or the model file is missing.</summary>
 public sealed class ModelSetupException(string message) : Exception(message);
 
-/// <summary>Что и как запускать.</summary>
+/// <summary>What to start and how.</summary>
 /// <param name="FallbackArgs">
-/// Аргументы без необязательной части (например, без аудио-проектора): если с ней сервер не запустился
-/// (старая сборка llama.cpp), пробуем ещё раз без неё.
+/// Arguments without the optional part (e.g. without the audio projector): if the server failed to start with it
+/// (an old llama.cpp build), try again without it.
 /// </param>
 public sealed record ServerLaunch(string Exe, IReadOnlyList<string> Args, string LogFile, IReadOnlyList<string> RequiredFiles,
     IReadOnlyList<string>? FallbackArgs = null);
 
 /// <summary>
-/// Один процесс llama-server с одной моделью: запуск по требованию, проверка готовности,
-/// остановка (по таймеру простоя или по команде). Все процессы в Job Object —
-/// при выходе программы они завершаются автоматически.
+/// One llama-server process with one model: started on demand, readiness check,
+/// stop (idle timer or command). All processes are in a Job Object —
+/// they are terminated automatically when the app exits.
 /// </summary>
 public sealed class LlamaServer : IDisposable
 {
@@ -43,16 +43,16 @@ public sealed class LlamaServer : IDisposable
 
     public string Name { get; }
 
-    /// <summary>Вызывается перед запуском (например, чтобы выгрузить другую модель в режиме «по очереди»).</summary>
+    /// <summary>Called before starting (e.g. to unload the other model in one-at-a-time mode).</summary>
     public Action? BeforeStart { get; set; }
     public ServerState State { get; private set; } = ServerState.Stopped;
 
-    /// <summary>Сервер запущен без необязательной части (см. ServerLaunch.FallbackArgs).</summary>
+    /// <summary>The server was started without the optional part (see ServerLaunch.FallbackArgs).</summary>
     public bool UsedFallback { get; private set; }
     public Uri BaseUri => new($"http://127.0.0.1:{_port}/");
     public DateTime LastUsedUtc => new(Interlocked.Read(ref _lastUsedTicks), DateTimeKind.Utc);
 
-    /// <param name="launchFactory">Получает порт, возвращает параметры запуска.</param>
+    /// <param name="launchFactory">Gets the port, returns the launch parameters.</param>
     public LlamaServer(string name, int port, Func<int, ServerLaunch> launchFactory)
     {
         Name = name;
@@ -69,7 +69,7 @@ public sealed class LlamaServer : IDisposable
         }
     }
 
-    /// <summary>Запускает сервер, если он не запущен, и ждёт готовности модели.</summary>
+    /// <summary>Starts the server if it is not running and waits until the model is ready.</summary>
     public Task EnsureReadyAsync(CancellationToken ct = default)
     {
         Task task;
@@ -135,7 +135,7 @@ public sealed class LlamaServer : IDisposable
         }
     }
 
-    /// <summary>Запускает llama-server и ждёт, пока модель загрузится (/health отвечает 200).</summary>
+    /// <summary>Starts llama-server and waits until the model is loaded (/health returns 200).</summary>
     private async Task RunAndWaitAsync(ServerLaunch launch, IReadOnlyList<string> args)
     {
         TryDelete(launch.LogFile);
@@ -165,8 +165,8 @@ public sealed class LlamaServer : IDisposable
                 using var resp = await Http.GetAsync(new Uri(BaseUri, "health"), cts.Token);
                 if (resp.StatusCode == HttpStatusCode.OK) break;
             }
-            catch (HttpRequestException) { /* сервер ещё не слушает порт */ }
-            catch (TaskCanceledException) { /* медленный ответ во время загрузки */ }
+            catch (HttpRequestException) { /* the server is not listening yet */ }
+            catch (TaskCanceledException) { /* slow reply while loading */ }
 
             if (DateTime.UtcNow > deadline)
                 throw new TimeoutException($"llama-server did not become ready in 3 minutes.\n{TailOf(launch.LogFile, 6)}");
@@ -174,7 +174,7 @@ public sealed class LlamaServer : IDisposable
         }
     }
 
-    /// <summary>Останавливает сервер и освобождает видеопамять.</summary>
+    /// <summary>Stops the server and frees GPU memory.</summary>
     public void Stop(string reason)
     {
         lock (_sync)
@@ -237,7 +237,7 @@ public sealed class LlamaServer : IDisposable
 
     private static void TryDelete(string file)
     {
-        try { File.Delete(file); } catch { /* файл может быть занят — не важно */ }
+        try { File.Delete(file); } catch { /* the file may be locked — does not matter */ }
     }
 
     private static string Quote(string a) => a.Contains(' ') ? $"\"{a}\"" : a;

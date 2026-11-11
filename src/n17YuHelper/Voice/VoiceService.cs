@@ -6,15 +6,15 @@ using N17YuHelper.Llm;
 namespace N17YuHelper.Voice;
 
 /// <summary>
-/// Речь → текст той же моделью, что переводит (Gemma 4 со своей аудио-частью, mmproj).
-/// Длинная запись режется на куски до ~28 с по паузам: модель рассчитана на 30 с звука за раз.
+/// Speech → text with the same model that translates (Gemma 4 with its audio part, mmproj).
+/// A long recording is cut into pieces of up to ~28 s at pauses: the model handles 30 s of audio at a time.
 /// </summary>
 public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderFile, Func<string> modelName)
 {
     private const int MaxChunkSeconds = 28;
     private const int MinChunkSeconds = 16;
 
-    /// <summary>Есть ли аудио-часть модели (иначе голосовой ввод недоступен).</summary>
+    /// <summary>Whether the model's audio part is present (otherwise voice input is unavailable).</summary>
     public bool IsAvailable => audioEncoderFile() is not null;
 
     public async Task<string> TranscribeAsync(byte[] pcm, IProgress<string>? progress, CancellationToken ct)
@@ -30,14 +30,14 @@ public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderF
                 "(Windows Settings > Privacy & security > Microphone).");
 
         var trimmed = TrimSilence(pcm);
-        if (trimmed.Length < AudioRecorder.SampleRate * 2 / 4) return ""; // меньше 0,25 с — нечего распознавать
+        if (trimmed.Length < AudioRecorder.SampleRate * 2 / 4) return ""; // under 0.25 s — nothing to recognize
 
         var sw = Stopwatch.StartNew();
         if (server.State != ServerState.Ready) progress?.Report("Loading the model...");
         await server.EnsureReadyAsync(ct);
         if (!await AudioSupportedAsync(ct))
         {
-            // Модель могла быть загружена до того, как скачали аудио-часть, — перезапускаем один раз.
+            // The model may have been loaded before the audio part was downloaded — restart once.
             if (!server.UsedFallback)
             {
                 progress?.Report("Reloading the model with its voice part...");
@@ -85,18 +85,18 @@ public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderF
                 },
             },
         };
-        // Примерно 25 токенов на секунду речи — с запасом.
+        // About 25 tokens per second of speech — with a margin.
         int maxTokens = Math.Max(256, pcm.Count / 2 / AudioRecorder.SampleRate * 40);
         return await ChatClient.StreamAsync(server, messages, 0, maxTokens, null, ct);
     }
 
-    // Проверено на смешанной речи (русский + английский): так модель не теряет части на другом языке.
+    // Tested on mixed speech (Russian + English): this way the model does not drop the parts in the other language.
     private const string Prompt =
         "Transcribe all speech in this audio word for word. " +
         "If the speaker switches languages, write each part in its own language. " +
         "Do not translate. Output only the transcript.";
 
-    /// <summary>Принимает ли запущенный сервер звук (иначе он молча его пропустит).</summary>
+    /// <summary>Whether the running server accepts audio (otherwise it silently ignores it).</summary>
     private async Task<bool> AudioSupportedAsync(CancellationToken ct)
     {
         if (server.UsedFallback) return false;
@@ -108,12 +108,12 @@ public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderF
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Log.Info("Could not check audio support: " + ex.Message); // старый llama-server без /props — пробуем всё равно
+            Log.Info("Could not check audio support: " + ex.Message); // old llama-server without /props — try anyway
             return true;
         }
     }
 
-    // ---------------- обработка звука ----------------
+    // ---------------- audio processing ----------------
 
     private static bool IsDigitalSilence(byte[] pcm)
     {
@@ -122,7 +122,7 @@ public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderF
         return true;
     }
 
-    /// <summary>Громкость окнами по 100 мс.</summary>
+    /// <summary>Loudness in 100 ms windows.</summary>
     private static float[] Energy(ReadOnlySpan<byte> pcm, int windowSamples)
     {
         int samples = pcm.Length / 2;
@@ -141,14 +141,14 @@ public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderF
         return e;
     }
 
-    /// <summary>Обрезает тишину в начале и в конце (оставляя по 0,3 с).</summary>
+    /// <summary>Trims silence at the start and end (keeping 0.3 s each).</summary>
     public static byte[] TrimSilence(byte[] pcm)
     {
         const int win = AudioRecorder.SampleRate / 10;
         var e = Energy(pcm, win);
         if (e.Length == 0) return pcm;
         float peak = e.Max();
-        if (peak < 0.003f) return []; // только тишина
+        if (peak < 0.003f) return []; // silence only
         float threshold = Math.Max(0.01f, peak * 0.08f);
         int first = Array.FindIndex(e, x => x > threshold);
         int last = Array.FindLastIndex(e, x => x > threshold);
@@ -157,7 +157,7 @@ public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderF
         return pcm[from..to];
     }
 
-    /// <summary>Режет на куски до 28 с, по самому тихому месту между 16 и 28 секундой.</summary>
+    /// <summary>Cuts into pieces of up to 28 s at the quietest spot between 16 and 28 seconds.</summary>
     public static List<ArraySegment<byte>> Split(byte[] pcm)
     {
         const int win = AudioRecorder.SampleRate / 10;
@@ -172,7 +172,7 @@ public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderF
             int best = toWin;
             for (int w = fromWin; w <= toWin; w++)
                 if (e[w] < e[best]) best = w;
-            int cut = best * win * 2 + win; // середина тихого окна
+            int cut = best * win * 2 + win; // middle of the quiet window
             result.Add(new ArraySegment<byte>(pcm, pos, cut - pos));
             pos = cut;
         }
@@ -180,7 +180,7 @@ public sealed class VoiceService(LlamaServer server, Func<string?> audioEncoderF
         return result;
     }
 
-    /// <summary>Убирает то, что модель иногда добавляет вокруг расшифровки.</summary>
+    /// <summary>Removes what the model sometimes adds around the transcript.</summary>
     private static string Clean(string text)
     {
         text = text.Trim();

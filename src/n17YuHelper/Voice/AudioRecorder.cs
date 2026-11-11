@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 namespace N17YuHelper.Voice;
 
 /// <summary>
-/// Запись с микрофона по умолчанию через winmm (waveIn): 16 кГц, моно, 16 бит —
-/// ровно то, что ждёт аудио-кодировщик модели. Без сторонних библиотек.
+/// Recording from the default microphone via winmm (waveIn): 16 kHz, mono, 16 bit —
+/// exactly what the model's audio encoder expects. No third-party libraries.
 /// </summary>
 public sealed class AudioRecorder : IDisposable
 {
@@ -21,7 +21,7 @@ public sealed class AudioRecorder : IDisposable
     private Thread? _thread;
     private volatile bool _stopping;
 
-    /// <summary>Громкость последнего куска (0…1, RMS). Вызывается из фонового потока.</summary>
+    /// <summary>Loudness of the last chunk (0…1, RMS). Called from a background thread.</summary>
     public event Action<float>? Level;
 
     public TimeSpan Duration
@@ -29,10 +29,10 @@ public sealed class AudioRecorder : IDisposable
         get { lock (_lock) return TimeSpan.FromSeconds(_pcm.Length / 2.0 / SampleRate); }
     }
 
-    /// <summary>Есть ли в системе хоть один микрофон.</summary>
+    /// <summary>Whether the system has at least one microphone.</summary>
     public static bool HasDevice => waveInGetNumDevs() > 0;
 
-    /// <summary>Названия микрофонов (Windows отдаёт не длиннее 31 символа).</summary>
+    /// <summary>Microphone names (Windows returns at most 31 characters).</summary>
     public static List<string> DeviceNames()
     {
         var list = new List<string>();
@@ -43,7 +43,7 @@ public sealed class AudioRecorder : IDisposable
         return list;
     }
 
-    /// <summary>Микрофон по названию (пусто или не найден — микрофон Windows по умолчанию).</summary>
+    /// <summary>Microphone by name (empty or not found — the Windows default microphone).</summary>
     public string Device { get; init; } = "";
 
     private uint DeviceId()
@@ -89,14 +89,14 @@ public sealed class AudioRecorder : IDisposable
         Log.Info("Microphone recording started" + (string.IsNullOrWhiteSpace(Device) ? "" : $" ({Device})"));
     }
 
-    /// <summary>Останавливает запись и возвращает PCM 16 кГц моно 16 бит.</summary>
+    /// <summary>Stops recording and returns 16 kHz mono 16-bit PCM.</summary>
     public byte[] Stop()
     {
         if (_hwi == IntPtr.Zero) return [];
         _stopping = true;
         _thread?.Join(1000);
         waveInStop(_hwi);
-        waveInReset(_hwi); // возвращает все буферы с тем, что успело записаться
+        waveInReset(_hwi); // returns all buffers with whatever was recorded
         Drain(requeue: false);
         Release();
         lock (_lock)
@@ -118,9 +118,9 @@ public sealed class AudioRecorder : IDisposable
     private static readonly int FlagsOffset = (int)Marshal.OffsetOf<WAVEHDR>(nameof(WAVEHDR.dwFlags));
     private static readonly int RecordedOffset = (int)Marshal.OffsetOf<WAVEHDR>(nameof(WAVEHDR.dwBytesRecorded));
 
-    private int _next; // буфер, который драйвер вернёт следующим (очередь идёт по кругу)
+    private int _next; // the buffer the driver will return next (the queue is circular)
 
-    /// <summary>Забирает заполненные буферы строго по порядку очереди и при необходимости ставит их обратно.</summary>
+    /// <summary>Takes filled buffers strictly in queue order and requeues them if needed.</summary>
     private void Drain(bool requeue)
     {
         int hdrSize = Marshal.SizeOf<WAVEHDR>();
@@ -203,7 +203,7 @@ public sealed class AudioRecorder : IDisposable
 
     // ---------------- WAV ----------------
 
-    /// <summary>PCM 16 кГц моно 16 бит → файл WAV.</summary>
+    /// <summary>16 kHz mono 16-bit PCM → WAV file.</summary>
     public static byte[] ToWav(ReadOnlySpan<byte> pcm)
     {
         var wav = new byte[44 + pcm.Length];

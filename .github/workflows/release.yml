@@ -1,5 +1,5 @@
-# Публичный выпуск: тег vX.Y.Z → сборка на Windows → установщик Velopack → GitHub Release.
-# Заметки к выпуску (на английском) — release-notes/X.Y.Z.md.
+# Public release: tag vX.Y.Z → build on Windows → Velopack installer → GitHub Release.
+# Release notes (English) — release-notes/X.Y.Z.md.
 name: Release
 
 on:

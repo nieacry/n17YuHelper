@@ -11,8 +11,8 @@ public sealed record DownloadProgress(string Stage, long Done, long Total, doubl
 }
 
 /// <summary>
-/// Скачивание моделей и llama-server прямо из программы: докачка (.part + Range),
-/// повтор при обрыве, прогресс и отмена.
+/// Downloading models and llama-server from inside the app: resume (.part + Range),
+/// retries on connection loss, progress and cancellation.
 /// </summary>
 public static class Downloader
 {
@@ -33,11 +33,11 @@ public static class Downloader
         return c;
     }
 
-    /// <summary>Скачивает все файлы пакета (и аудио-часть, если есть), которых ещё нет.</summary>
+    /// <summary>Downloads all files of a package (and its audio part, if any) that are not there yet.</summary>
     public static Task DownloadPackageAsync(ModelPackage package, string modelsDir, IProgress<DownloadProgress> progress, CancellationToken ct) =>
         DownloadFilesAsync(package.Name, package.AllFiles, modelsDir, progress, ct);
 
-    /// <summary>Скачивает файлы, которых ещё нет, с общим прогрессом.</summary>
+    /// <summary>Downloads the files that are not there yet, with overall progress.</summary>
     public static async Task DownloadFilesAsync(string name, IReadOnlyList<ModelFile> files, string modelsDir, IProgress<DownloadProgress> progress, CancellationToken ct)
     {
         long total = files.Sum(f => f.Size);
@@ -60,8 +60,8 @@ public static class Downloader
     }
 
     /// <summary>
-    /// Скачивает файл с докачкой: сначала в .part, в конце проверяет размер и SHA256 (если известен)
-    /// и переименовывает. Испорченный файл удаляется, чтобы следующая попытка скачала его заново.
+    /// Downloads a file with resume: first to .part, at the end checks the size and SHA256 (if known)
+    /// and renames it. A damaged file is deleted so the next attempt downloads it again.
     /// </summary>
     public static async Task DownloadFileAsync(string url, string dest, long expectedSize, IProgress<DownloadProgress> progress, CancellationToken ct, string? sha256 = null)
     {
@@ -109,7 +109,7 @@ public static class Downloader
 
         if (existing > 0 && resp.StatusCode != System.Net.HttpStatusCode.PartialContent)
         {
-            // Сервер не умеет докачку — начинаем заново.
+            // The server does not support resume — start over.
             existing = 0;
         }
         resp.EnsureSuccessStatusCode();
@@ -142,7 +142,7 @@ public static class Downloader
         progress.Report(new DownloadProgress("Downloading", done, total, speed));
     }
 
-    /// <summary>SHA256 файла (hex, строчными) с прогрессом «Verifying».</summary>
+    /// <summary>File SHA256 (lowercase hex) with "Verifying" progress.</summary>
     public static async Task<string> Sha256Async(string path, IProgress<DownloadProgress> progress, CancellationToken ct)
     {
         using var sha = System.Security.Cryptography.SHA256.Create();
@@ -167,7 +167,7 @@ public static class Downloader
 
     // ---------------- llama-server ----------------
 
-    /// <summary>Скачивает и распаковывает свежую сборку llama.cpp для этой видеокарты.</summary>
+    /// <summary>Downloads and unpacks the llama.cpp build for this graphics card.</summary>
     public static async Task<string> InstallRuntimeAsync(GpuInfo gpu, string runtimeDir, IProgress<DownloadProgress> progress, CancellationToken ct)
     {
         progress.Report(new DownloadProgress("Looking for the llama.cpp build", 0, 0, 0));
@@ -204,7 +204,7 @@ public static class Downloader
         return tag;
     }
 
-    /// <summary>Установленная версия llama.cpp (первая строка VERSION.txt) или null.</summary>
+    /// <summary>Installed llama.cpp version (first line of VERSION.txt) or null.</summary>
     public static string? InstalledRuntime(string runtimeDir)
     {
         var exe = Path.Combine(runtimeDir, "llama-server.exe");
@@ -215,9 +215,9 @@ public static class Downloader
     }
 
     /// <summary>
-    /// Находит сборку llama.cpp для Windows нужного вида. Если в каталоге задан проверенный тег — берём его;
-    /// если его нет (или тег пустой) — самый свежий релиз, где есть Windows-сборка («latest» бывает только с исходниками,
-    /// поэтому смотрим последние 30). SHA256 файлов — из поля digest GitHub, если оно есть.
+    /// Finds the Windows llama.cpp build of the right kind. If the catalog sets a tested tag — use it;
+    /// if it is missing (or the tag is empty) — the newest release with a Windows build ("latest" sometimes has only sources,
+    /// so the last 30 are checked). File SHA256 comes from GitHub's digest field, if present.
     /// </summary>
     private static async Task<(string Tag, List<(string Name, string Url, long Size, string? Sha256)> Assets)> FindRuntimeAssetsAsync(string build, string pinnedTag, CancellationToken ct)
     {

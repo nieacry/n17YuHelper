@@ -1,14 +1,14 @@
 namespace N17YuHelper.Tools;
 
 /// <summary>
-/// Озвучка голосами Windows (SAPI). Голос выбирается по языку текста;
-/// если голоса для языка нет — возвращается подсказка, что установить.
+/// Text-to-speech with Windows voices (SAPI). The voice is chosen by the text language;
+/// if there is no voice for the language, a hint about what to install is returned.
 /// </summary>
 public static class Speech
 {
     private static dynamic? _voice;
 
-    /// <summary>Произнести текст. Возвращает null или текст ошибки для пользователя.</summary>
+    /// <summary>Speak the text. Returns null or an error message for the user.</summary>
     public static string? Speak(string text, string languageCode)
     {
         try
@@ -38,7 +38,7 @@ public static class Speech
 
     public static void Stop()
     {
-        try { _voice?.Speak("", 2); } catch { /* ничего не говорилось */ }
+        try { _voice?.Speak("", 2); } catch { /* nothing was being spoken */ }
     }
 
     private static string LanguageName(string code) => code switch

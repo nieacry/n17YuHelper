@@ -1,12 +1,12 @@
 namespace N17YuHelper;
 
-/// <summary>Где был выделен текст: окно и программа (для замены текста обратно).</summary>
+/// <summary>Where the text was selected: window and app (to replace the text back).</summary>
 public sealed record SourceWindow(IntPtr Handle, string ProcessName);
 
 /// <summary>
-/// Заменяет выделенный текст в исходной программе: возвращает ей фокус,
-/// вставляет новый текст через буфер обмена (Ctrl+V или Shift+Insert в терминалах)
-/// и возвращает прежнее содержимое буфера.
+/// Replaces the selected text in the source app: gives it focus back,
+/// pastes the new text via the clipboard (Ctrl+V, or Shift+Insert in terminals)
+/// and restores the previous clipboard contents.
 /// </summary>
 public static class TextReplacer
 {
@@ -29,7 +29,7 @@ public static class TextReplacer
         await Task.Delay(120);
         if (Native.GetForegroundWindow() != source.Handle)
         {
-            // Не удалось вернуться в окно — текст остаётся в буфере, пользователь вставит сам.
+            // Could not return to the window — the text stays in the clipboard for the user to paste.
             Log.Info($"Replace: could not activate {source.ProcessName}, text left in clipboard");
             return false;
         }
@@ -37,7 +37,7 @@ public static class TextReplacer
         bool terminal = settings.CopyWithCtrlInsertProcesses.Contains(source.ProcessName, StringComparer.OrdinalIgnoreCase);
         SendPaste(terminal);
 
-        // Даём программе забрать текст из буфера, потом возвращаем прежний буфер.
+        // Let the app take the text from the clipboard, then restore the previous clipboard.
         await Task.Delay(400);
         backup.Restore();
         Log.Info($"Replace: pasted {text.Length} chars into {source.ProcessName}");
@@ -64,7 +64,7 @@ public static class TextReplacer
         }
     }
 
-    /// <summary>Запоминает активное окно (вызывать до показа своих окон).</summary>
+    /// <summary>Remembers the active window (call before showing our own windows).</summary>
     public static SourceWindow CaptureForeground()
     {
         var hwnd = Native.GetForegroundWindow();
@@ -75,7 +75,7 @@ public static class TextReplacer
             using var p = System.Diagnostics.Process.GetProcessById((int)pid);
             name = p.ProcessName;
         }
-        catch { /* процесс мог закрыться */ }
+        catch { /* the process may have exited */ }
         return new SourceWindow(hwnd, name);
     }
 }

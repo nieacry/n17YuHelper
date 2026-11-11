@@ -4,7 +4,7 @@ using System.Drawing.Text;
 
 namespace N17YuHelper.Capture;
 
-/// <summary>Результат выделения: прямоугольник в координатах экрана и картинка.</summary>
+/// <summary>Selection result: rectangle in screen coordinates and the image.</summary>
 public sealed class RegionCaptureResult(Rectangle screenRect, Bitmap image) : IDisposable
 {
     public Rectangle ScreenRect { get; } = screenRect;
@@ -13,17 +13,17 @@ public sealed class RegionCaptureResult(Rectangle screenRect, Bitmap image) : ID
 }
 
 /// <summary>
-/// Рамка выделения как в ShareX: снимок всех мониторов, затемнение,
-/// перекрестие, лупа, прилипание к окнам и элементам.
-/// ЛКМ+тянуть — область; клик — окно/элемент под курсором;
-/// ПКМ — сбросить выделение или выйти; Esc — выйти; Enter — взять окно под курсором;
-/// стрелки — сдвиг курсора на 1 px (с Shift — на 10 px).
+/// Region frame like in ShareX: snapshot of all monitors, dimming,
+/// crosshair, magnifier, snapping to windows and controls.
+/// Drag — region; click — window/control under the cursor;
+/// right click — reset the selection or exit; Esc — exit; Enter — take the window under the cursor;
+/// arrows — move the cursor by 1 px (Shift — by 10 px).
 /// </summary>
 internal sealed class RegionCaptureForm : Form
 {
     private const int WS_EX_TOOLWINDOW = 0x00000080;
     private const int WS_EX_TOPMOST = 0x00000008;
-    private const int MagnifierPixels = 15;   // сколько пикселей экрана видно в лупе
+    private const int MagnifierPixels = 15;   // how many screen pixels the magnifier shows
     private const int MagnifierZoom = 8;
 
     private readonly Bitmap _shot;
@@ -71,7 +71,7 @@ internal sealed class RegionCaptureForm : Form
                  ControlStyles.OptimizedDoubleBuffer | ControlStyles.Opaque, true);
     }
 
-    /// <summary>Показывает рамку и возвращает выделенную область или null при отмене.</summary>
+    /// <summary>Shows the frame and returns the selected region, or null if cancelled.</summary>
     public static RegionCaptureResult? Run(AppSettings settings)
     {
         var vs = SystemInformation.VirtualScreen;
@@ -126,11 +126,11 @@ internal sealed class RegionCaptureForm : Form
     }
 
     /// <summary>
-    /// Снимок всего виртуального экрана через BitBlt (SRCCOPY | CAPTUREBLT —
-    /// чтобы попали и полупрозрачные окна). Graphics.CopyFromScreen не принимает
-    /// комбинацию этих флагов, поэтому вызываем GDI напрямую.
+    /// Snapshot of the whole virtual screen via BitBlt (SRCCOPY | CAPTUREBLT —
+    /// so that semi-transparent windows are included). Graphics.CopyFromScreen does not accept
+    /// this combination of flags, so GDI is called directly.
     /// </summary>
-    /// <summary>Снимок прямоугольника экрана (координаты экрана), 24 бита.</summary>
+    /// <summary>Snapshot of a screen rectangle (screen coordinates), 24 bit.</summary>
     public static Bitmap CaptureRect(Rectangle r)
     {
         using var full = CaptureScreen(r);
@@ -168,7 +168,7 @@ internal sealed class RegionCaptureForm : Form
 
     protected override void WndProc(ref Message m)
     {
-        // Окно растянуто на все мониторы — не даём WinForms менять его размер при смене DPI.
+        // The window spans all monitors — do not let WinForms resize it on DPI changes.
         if (m.Msg == Native.WM_DPICHANGED)
         {
             m.Result = IntPtr.Zero;
@@ -190,7 +190,7 @@ internal sealed class RegionCaptureForm : Form
         Invalidate();
     }
 
-    // ---------------- Ввод ----------------
+    // ---------------- Input ----------------
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
@@ -310,13 +310,13 @@ internal sealed class RegionCaptureForm : Form
 
     private Rectangle ActiveRect => _dragging ? _selection : _hover;
 
-    // ---------------- Перерисовка только изменившихся частей ----------------
+    // ---------------- Repaint only the parts that changed ----------------
 
     private void Redraw()
     {
         var active = ActiveRect;
 
-        // Внутренность выделения: перерисовываем только то, что сменило «затемнено/светло».
+        // Inside the selection: repaint only what switched between dimmed and bright.
         if (active != _lastActive)
         {
             using var region = new Region(_lastActive);
@@ -380,7 +380,7 @@ internal sealed class RegionCaptureForm : Form
         return new Rectangle(new Point(x, y), size);
     }
 
-    // ---------------- Рисование ----------------
+    // ---------------- Painting ----------------
 
     protected override void OnPaint(PaintEventArgs e)
     {
@@ -402,11 +402,11 @@ internal sealed class RegionCaptureForm : Form
         g.CompositingMode = CompositingMode.SourceOver;
         g.PixelOffsetMode = PixelOffsetMode.Default;
 
-        // Перекрестие
+        // Crosshair
         g.DrawLine(_crossPen, _cursor.X, 0, _cursor.X, ClientSize.Height);
         g.DrawLine(_crossPen, 0, _cursor.Y, ClientSize.Width, _cursor.Y);
 
-        // Рамка и размер
+        // Frame and size
         if (!active.IsEmpty)
         {
             g.DrawRectangle(_dragging ? _selPen : _hoverPen, active.X, active.Y, active.Width - 1, active.Height - 1);

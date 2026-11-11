@@ -17,7 +17,7 @@
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
-    <!-- Публикация: один exe, нужен .NET 10 Desktop Runtime -->
+    <!-- Publishing: a single exe, requires .NET 10 Desktop Runtime -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
@@ -26,7 +26,7 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 
-    <!-- Меньше памяти в простое -->
+    <!-- Less memory when idle -->
     <ServerGarbageCollector>false</ServerGarbageCollector>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>true</TieredPGO>
@@ -37,11 +37,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- QR-коды и штрихкоды -->
+    <!-- QR codes and barcodes -->
     <PackageReference Include="Velopack" Version="1.2.161" />
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
     <PackageReference Include="PdfPig" Version="0.1.16" />
-    <!-- PDF читается редко: без предкомпиляции exe намного меньше. -->
+    <!-- PDF is read rarely: without precompilation the exe is much smaller. -->
     <PublishReadyToRunExclude Include="UglyToad.PdfPig.dll;UglyToad.PdfPig.Core.dll;UglyToad.PdfPig.DocumentLayoutAnalysis.dll;UglyToad.PdfPig.Fonts.dll;UglyToad.PdfPig.Package.dll;UglyToad.PdfPig.Tokenization.dll;UglyToad.PdfPig.Tokens.dll" />
   </ItemGroup>
 

@@ -5,15 +5,15 @@ namespace N17YuHelper.UI;
 
 public enum ButtonKind
 {
-    /// <summary>Обычная кнопка с подложкой.</summary>
+    /// <summary>Regular button with a background.</summary>
     Normal,
-    /// <summary>Главное действие — цвет акцента.</summary>
+    /// <summary>Main action — accent color.</summary>
     Accent,
-    /// <summary>Без подложки, подсвечивается при наведении.</summary>
+    /// <summary>No background, highlighted on hover.</summary>
     Ghost,
 }
 
-/// <summary>Скруглённая кнопка в стиле Windows 11, с необязательной подсказкой клавиши справа.</summary>
+/// <summary>Rounded Windows 11 style button with an optional key hint on the right.</summary>
 internal class ModernButton : Control
 {
     private bool _hover, _down;
@@ -37,19 +37,19 @@ internal class ModernButton : Control
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public ButtonKind Kind { get => _kind; set { _kind = value; Invalidate(); } }
 
-    /// <summary>Подсказка клавиши (например «1» или «Ctrl+1»), рисуется маленькой плашкой.</summary>
+    /// <summary>Key hint (e.g. "1" or "Ctrl+1"), drawn as a small badge.</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public string Hint { get => _hint; set { _hint = value ?? ""; FitWidth(); Invalidate(); } }
 
-    /// <summary>Значок из шрифта Segoe Fluent Icons / MDL2 Assets (например "\uE8C8" — копировать).</summary>
+    /// <summary>Glyph from the Segoe Fluent Icons / MDL2 Assets font (e.g. "\uE8C8" — copy).</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public string Glyph { get => _glyph; set { _glyph = value ?? ""; FitWidth(); Invalidate(); } }
 
-    /// <summary>Выбранное состояние (для пунктов навигации).</summary>
+    /// <summary>Selected state (for navigation items).</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool Selected { get => _selected; set { _selected = value; Invalidate(); } }
 
-    /// <summary>Выравнивание текста влево (для навигации).</summary>
+    /// <summary>Left-aligned text (for navigation).</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool AlignLeft { get; set; }
 
@@ -142,7 +142,7 @@ internal class ModernButton : Control
             g.DrawPath(p, path);
         }
 
-        // Полоска акцента у выбранного пункта навигации.
+        // Accent bar on the selected navigation item.
         if (_selected && _kind == ButtonKind.Ghost)
         {
             using var accent = new SolidBrush(Theme.Accent);
@@ -154,7 +154,7 @@ internal class ModernButton : Control
         int left = AlignLeft ? 14 : 12;
         int contentRight = Width - (hintW > 0 ? hintW + 8 : 0) - (AlignLeft ? 0 : 6);
 
-        // Значок слева от текста.
+        // Icon to the left of the text.
         if (_glyph.Length > 0)
         {
             using var iconFont = new Font(Theme.IconFontName, Font.Size * 1.05f);
@@ -191,7 +191,7 @@ internal class ModernButton : Control
     }
 }
 
-/// <summary>Панель-«карточка» со скруглённой рамкой. Внутренний контрол кладётся с отступом.</summary>
+/// <summary>"Card" panel with a rounded border. The inner control is placed with padding.</summary>
 internal sealed class Card : Panel
 {
     public Card()
@@ -212,7 +212,7 @@ internal sealed class Card : Panel
         g.FillPath(b, path);
         if (Mark is { } mark)
         {
-            // Цветная полоска слева и рамка того же цвета.
+            // Colored bar on the left and a border of the same color.
             var state = g.Save();
             g.SetClip(path);
             float strip = 5f * DeviceDpi / 96f;
@@ -226,12 +226,12 @@ internal sealed class Card : Panel
         g.DrawPath(p, path);
     }
 
-    /// <summary>Цвет отметки (зелёный — рекомендуется, красный — нет). Null — обычная карточка.</summary>
+    /// <summary>Mark color (green — recommended, red — not). Null — a plain card.</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public Color? Mark { get; set { field = value; Invalidate(); } }
 }
 
-/// <summary>Тонкая полоска «идёт работа» под заголовком (бегущий отрезок цвета акцента).</summary>
+/// <summary>Thin "working" bar under the header (a running segment in the accent color).</summary>
 internal sealed class BusyLine : Control
 {
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 16 };
@@ -275,7 +275,7 @@ internal sealed class BusyLine : Control
     }
 }
 
-/// <summary>Мелкая подпись над карточкой («ORIGINAL», «TRANSLATION»).</summary>
+/// <summary>Small caption above a card ("ORIGINAL", "TRANSLATION").</summary>
 internal sealed class Caption : Label
 {
     public Caption(string text)

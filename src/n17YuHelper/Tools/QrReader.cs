@@ -4,7 +4,7 @@ using ZXing;
 
 namespace N17YuHelper.Tools;
 
-/// <summary>QR-коды и штрихкоды на картинке (ZXing).</summary>
+/// <summary>QR codes and barcodes in an image (ZXing).</summary>
 public static class QrReader
 {
     public sealed record Code(string Text, string Format)
@@ -22,7 +22,7 @@ public static class QrReader
             byte[] bytes;
             try
             {
-                // Без выравнивания строк — ZXing ждёт плотный массив.
+                // No row padding — ZXing expects a dense array.
                 int row = src.Width * 3;
                 bytes = new byte[row * src.Height];
                 for (int y = 0; y < src.Height; y++)

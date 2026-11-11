@@ -4,17 +4,17 @@ using System.Text.Json.Serialization;
 
 namespace N17YuHelper;
 
-/// <summary>Откуда брать входные данные.</summary>
+/// <summary>Where the input comes from.</summary>
 public enum InputSource
 {
-    /// <summary>Если текст выделен — берём его, иначе показываем рамку.</summary>
+    /// <summary>Selected text if any, otherwise the region frame.</summary>
     Auto,
     SelectedText,
     Region,
     Clipboard,
-    /// <summary>Та же область экрана, что в прошлый раз (без рамки).</summary>
+    /// <summary>The same screen region as last time (no frame).</summary>
     LastRegion,
-    /// <summary>Голос: запись с микрофона → текст.</summary>
+    /// <summary>Voice: microphone recording → text.</summary>
     Voice,
 }
 
@@ -24,13 +24,13 @@ public enum HotkeyAction
     Ocr,
     Translate,
     Grammar,
-    /// <summary>Распознать таблицу (в буфер — для вставки в Excel / Word).</summary>
+    /// <summary>Recognize a table (to the clipboard — for pasting into Excel / Word).</summary>
     OcrTable,
-    /// <summary>Распознать формулу (в буфер — LaTeX).</summary>
+    /// <summary>Recognize a formula (to the clipboard — LaTeX).</summary>
     OcrFormula,
-    /// <summary>Своё действие из списка CustomActions (по имени в CustomAction).</summary>
+    /// <summary>A custom action from CustomActions (by the name in CustomAction).</summary>
     Custom,
-    /// <summary>Текст как есть, без обработки (например, диктовка прямо в программу).</summary>
+    /// <summary>Text as is, no processing (e.g. dictation straight into an app).</summary>
     AsIs,
 }
 
@@ -39,7 +39,7 @@ public enum AfterAction
     ShowWindow,
     Copy,
     Replace,
-    /// <summary>Показать результат поверх обведённой области (можно включить живое обновление).</summary>
+    /// <summary>Show the result over the selected region (live updates can be turned on).</summary>
     Overlay,
 }
 
@@ -51,9 +51,9 @@ public sealed class HotkeyEntry
     public InputSource Source { get; set; } = InputSource.Auto;
     public HotkeyAction Action { get; set; } = HotkeyAction.Menu;
     public AfterAction After { get; set; } = AfterAction.ShowWindow;
-    /// <summary>Язык перевода: "auto" или код языка (en, ru, uk, zh).</summary>
+    /// <summary>Target language: "auto" or a language code (en, ru, uk, zh).</summary>
     public string TargetLanguage { get; set; } = "auto";
-    /// <summary>Имя своего действия (для Action = Custom).</summary>
+    /// <summary>Custom action name (for Action = Custom).</summary>
     public string CustomAction { get; set; } = "";
 }
 
@@ -64,38 +64,38 @@ public sealed class AppSettings
     public int SettingsVersion { get; set; } = CurrentSettingsVersion;
 
     /// <summary>
-    /// Папка с моделями. Пусто — искать папку models рядом с exe и выше
-    /// (publish\..\models, versions\vX\..\..\models). Относительный путь — от папки с exe.
+    /// Models folder. Empty — look for a models folder next to the exe and above
+    /// (publish\..\models, versions\vX\..\..\models). A relative path is relative to the data folder.
     /// </summary>
     public string ModelsPath { get; set; } = "";
 
-    /// <summary>Папка с llama-server.exe. Пусто — искать runtime\llama-server рядом с exe и выше.</summary>
+    /// <summary>Folder with llama-server.exe. Empty — look for runtime\llama-server next to the exe and above.</summary>
     public string RuntimePath { get; set; } = "";
 
-    /// <summary>Настройки модели распознавания текста.</summary>
+    /// <summary>Text recognition model settings.</summary>
     public OcrSettings Ocr { get; set; } = new();
 
-    /// <summary>Настройки текстовой модели (перевод, грамматика).</summary>
+    /// <summary>Text model settings (translation, grammar).</summary>
     public TextModelSettings TextModel { get; set; } = new();
 
-    /// <summary>Настройки перевода.</summary>
+    /// <summary>Translation settings.</summary>
     public TranslationSettings Translation { get; set; } = new();
 
-    /// <summary>Голосовой ввод.</summary>
+    /// <summary>Voice input.</summary>
     public VoiceSettings Voice { get; set; } = new();
 
-    /// <summary>Свои действия (кнопки 6–9 в окне действий, можно назначить на клавиши).</summary>
+    /// <summary>Custom actions (buttons 6–9 in the action window, can be bound to hotkeys).</summary>
     public List<CustomAction> CustomActions { get; set; } = CustomAction.Defaults();
 
-    /// <summary>Через сколько минут простоя выгружать модели (0 — держать всегда).</summary>
+    /// <summary>Unload models after this many idle minutes (0 — keep loaded).</summary>
     public int ModelIdleUnloadMinutes { get; set; } = 5;
 
-    /// <summary>Сколько ждать, пока программа скопирует выделенный текст (мс).</summary>
+    /// <summary>How long to wait for the app to copy the selected text (ms).</summary>
     public int SelectionCopyTimeoutMs { get; set; } = 250;
 
     /// <summary>
-    /// Программы, где вместо Ctrl+C используется Ctrl+Insert.
-    /// В терминалах Ctrl+C без выделения прерывает запущенную команду.
+    /// Apps where Ctrl+Insert is used instead of Ctrl+C.
+    /// In terminals Ctrl+C without a selection interrupts the running command.
     /// </summary>
     public List<string> CopyWithCtrlInsertProcesses { get; set; } =
     [
@@ -104,26 +104,26 @@ public sealed class AppSettings
     ];
 
     /// <summary>
-    /// Программы, где выделенный текст не берём вообще (сразу рамка).
-    /// В Maya и Blender Ctrl+C копирует выделенные объекты сцены — это может быть долго.
+    /// Apps where selected text is never taken (straight to the frame).
+    /// In Maya and Blender Ctrl+C copies selected scene objects, which can take long.
     /// </summary>
     public List<string> NeverCopyProcesses { get; set; } = ["maya", "blender"];
 
     /// <summary>
-    /// Видеопамять: Auto — решить по объёму памяти; Both — держать обе модели;
-    /// OneAtATime — перед загрузкой одной модели выгружать другую.
+    /// GPU memory: Auto — decide by the amount of memory; Both — keep both models loaded;
+    /// OneAtATime — unload one model before loading the other.
     /// </summary>
     public string GpuMode { get; set; } = "Auto";
 
-    /// <summary>Окно приветствия (мастер моделей) уже показывалось.</summary>
+    /// <summary>The welcome window (model wizard) has been shown.</summary>
     public bool WelcomeShown { get; set; }
 
-    /// <summary>Оформление: System (как в Windows), Light, Dark. Применяется после перезапуска.</summary>
+    /// <summary>Theme: System (as in Windows), Light, Dark. Applied after restart.</summary>
     public string Theme { get; set; } = "System";
 
     /// <summary>
-    /// Пока запущена одна из этих программ, модели выгружаются после минуты простоя,
-    /// чтобы освободить видеопамять для работы.
+    /// While one of these apps is running, models are unloaded after a minute of idle time
+    /// to free GPU memory for work.
     /// </summary>
     public List<string> UnloadWhileRunning { get; set; } =
     [
@@ -131,34 +131,34 @@ public sealed class AppSettings
         "UnrealEditor", "Adobe Substance 3D Painter", "Marvelous Designer",
     ];
 
-    /// <summary>Последняя обведённая область (x,y,w,h в пикселях экрана).</summary>
+    /// <summary>Last selected region (x,y,w,h in screen pixels).</summary>
     public string LastRegion { get; set; } = "";
 
-    /// <summary>Как часто проверять область в живом режиме окна поверх (мс).</summary>
+    /// <summary>How often the region is checked in the live overlay mode (ms).</summary>
     public int LiveIntervalMs { get; set; } = 1500;
 
-    /// <summary>Показывать лупу в рамке выделения.</summary>
+    /// <summary>Show the magnifier in the region frame.</summary>
     public bool ShowMagnifier { get; set; } = false;
 
-    /// <summary>Прилипать рамкой к окнам и элементам интерфейса.</summary>
+    /// <summary>Snap the frame to windows and controls.</summary>
     public bool SnapToWindows { get; set; } = true;
 
-    /// <summary>Окно действий не закрывается, когда щёлкаешь в другом месте (как кнопка 📌).</summary>
+    /// <summary>The action window does not close when you click elsewhere (like the 📌 button).</summary>
     public bool KeepWindowOpen { get; set; } = false;
 
-    /// <summary>Хранить историю на диске (history.json в папке данных), иначе только до выхода.</summary>
+    /// <summary>Keep history on disk (history.json in the data folder), otherwise only until exit.</summary>
     public bool SaveHistory { get; set; } = true;
 
-    /// <summary>Сколько последних результатов хранить.</summary>
+    /// <summary>How many recent results to keep.</summary>
     public int HistoryLimit { get; set; } = 300;
 
-    /// <summary>Проверять обновления в интернете (GitHub) при запуске и раз в 6 часов. Только для установленной программы.</summary>
+    /// <summary>Check for updates online (GitHub) at startup and every 6 hours. Installed app only.</summary>
     public bool CheckUpdatesAutomatically { get; set; } = true;
 
-    /// <summary>Ставить скачанное обновление самому, когда программа ничем не занята. Иначе — только уведомление.</summary>
+    /// <summary>Install a downloaded update automatically when the app is idle. Otherwise only notify.</summary>
     public bool InstallUpdatesAutomatically { get; set; } = true;
 
-    /// <summary>Что делать по левому клику по иконке в трее.</summary>
+    /// <summary>What a left click on the tray icon does.</summary>
     public InputSource TrayClickSource { get; set; } = InputSource.Region;
 
     public List<HotkeyEntry> Hotkeys { get; set; } = DefaultHotkeys();
@@ -195,13 +195,13 @@ public sealed class AppSettings
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // кириллица читаемо, без \uXXXX
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // non-Latin text stays readable, no \uXXXX
         Converters = { new JsonStringEnumConverter() },
     };
 
     public static string FilePath => Path.Combine(AppPaths.DataDir, "settings.json");
 
-    /// <summary>Быстро прочитать только тему (до создания окон).</summary>
+    /// <summary>Quickly read only the theme (before any window is created).</summary>
     public static string PeekTheme()
     {
         try
@@ -212,11 +212,11 @@ public sealed class AppSettings
                 if (p.NameEquals("Theme") || p.Name.Equals("theme", StringComparison.OrdinalIgnoreCase))
                     return p.Value.GetString() ?? "System";
         }
-        catch { /* битый файл — тема по умолчанию */ }
+        catch { /* broken file — default theme */ }
         return "System";
     }
 
-    /// <summary>Загружает настройки. Если файла нет — создаёт его с настройками по умолчанию.</summary>
+    /// <summary>Loads settings. Creates the file with defaults if it does not exist.</summary>
     public static AppSettings Load(out string? error)
     {
         error = null;
@@ -242,33 +242,21 @@ public sealed class AppSettings
         }
     }
 
-    /// <summary>Обновляет старые настройки до текущей версии. Возвращает true, если что-то изменилось.</summary>
+    /// <summary>Upgrades old settings to the current version. Returns true if anything changed.</summary>
     private bool Migrate()
     {
         if (SettingsVersion >= CurrentSettingsVersion) return false;
 
-        // v1 → v2: интерфейс на английском — переименовываем стандартные клавиши.
-        if (SettingsVersion < 2)
-        {
-            var names = new Dictionary<string, string>
-            {
-                ["Умная клавиша — меню"] = "Smart key: menu",
-                ["Распознать область в буфер"] = "OCR region to clipboard",
-                ["Перевести"] = "Translate",
-                ["Проверить грамматику"] = "Check grammar",
-            };
-            foreach (var h in Hotkeys)
-                if (names.TryGetValue(h.Name, out var en)) h.Name = en;
-        }
+        // v1 → v2 (Russian hotkey names → English) is no longer needed: such settings no longer exist.
 
-        // v2 → v3: лупа в рамке выделения по умолчанию выключена.
+        // v2 → v3: the magnifier in the region frame is off by default.
         if (SettingsVersion < 3) ShowMagnifier = false;
 
-        // v8 → v9: клавиша «перевести последнюю область поверх».
+        // v8 → v9: hotkey "translate the last region over the original".
         if (SettingsVersion < 9 && !Hotkeys.Any(h => string.Equals(h.Keys, "Ctrl+Shift+Win+A", StringComparison.OrdinalIgnoreCase)))
             Hotkeys.Add(LastRegionOverlayHotkey());
 
-        // v9 → v10: голосовой ввод.
+        // v9 → v10: voice input.
         if (SettingsVersion < 10)
         {
             if (!Hotkeys.Any(h => string.Equals(h.Keys, "Ctrl+Shift+Win+V", StringComparison.OrdinalIgnoreCase)))
@@ -277,13 +265,13 @@ public sealed class AppSettings
                 Hotkeys.Add(VoiceTypeHotkey());
         }
 
-        // v6 → v7: новая клавиша «перевести и заменить» (если такая комбинация ещё не занята в настройках).
+        // v6 → v7: new hotkey "translate and replace" (if that combination is not taken yet).
         if (SettingsVersion < 7 && !Hotkeys.Any(h => string.Equals(h.Keys, "Ctrl+Shift+Win+R", StringComparison.OrdinalIgnoreCase)))
             Hotkeys.Add(TranslateAndReplaceHotkey());
 
-        // v5 → v6: список программ для автовыгрузки появился — у старых настроек он заполнен по умолчанию инициализатором.
+        // v5 → v6: the auto-unload app list appeared — old settings get the default list from the initializer.
 
-        // v3 → v4: пути к моделям и llama-server ищутся автоматически.
+        // v3 → v4: model and llama-server paths are found automatically.
         if (SettingsVersion < 4)
         {
             if (ModelsPath == @".\models") ModelsPath = "";
@@ -295,11 +283,11 @@ public sealed class AppSettings
         return true;
     }
 
-    /// <summary>Независимая копия (для окна настроек: правки не применяются до «Apply»).</summary>
+    /// <summary>Independent copy (for the settings window: changes apply only on Apply).</summary>
     public AppSettings Clone() =>
         JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(this, JsonOptions), JsonOptions)!;
 
-    /// <summary>Отличаются ли настройки, от которых зависит запуск моделей.</summary>
+    /// <summary>Whether settings that affect starting the models differ.</summary>
     public bool ModelConfigDiffers(AppSettings other) =>
         ModelsPath != other.ModelsPath || RuntimePath != other.RuntimePath ||
         JsonSerializer.Serialize(Ocr, JsonOptions) != JsonSerializer.Serialize(other.Ocr, JsonOptions) ||
@@ -321,23 +309,23 @@ public sealed class AppSettings
     public string ResolvePath(string path) =>
         Path.IsPathRooted(path) ? path : Path.GetFullPath(Path.Combine(AppPaths.DataDir, path));
 
-    /// <summary>Папка с моделями (настройка или автопоиск).</summary>
+    /// <summary>Models folder (setting or auto-detected).</summary>
     [JsonIgnore]
     public string ModelsDir => ResolveDir(ModelsPath, "models");
 
-    /// <summary>Папка с llama-server.exe (настройка или автопоиск).</summary>
+    /// <summary>Folder with llama-server.exe (setting or auto-detected).</summary>
     [JsonIgnore]
     public string RuntimeDir => ResolveDir(RuntimePath, Path.Combine("runtime", "llama-server"));
 
     /// <summary>
-    /// Если путь задан — возвращает его. Иначе ищет папку рядом с exe и до трёх уровней выше.
-    /// Если нигде нет — возвращает вариант рядом с exe (для сообщения об ошибке).
+    /// Returns the path if it is set. Otherwise looks for the folder next to the exe and up to three levels above.
+    /// If it is nowhere — returns the path next to the exe (for the error message).
     /// </summary>
     private string ResolveDir(string configured, string relative)
     {
         if (!string.IsNullOrWhiteSpace(configured)) return ResolvePath(configured);
 
-        // Установленная программа: только папка данных (выше по дереву — чужие папки).
+        // Installed app: only the data folder (folders further up belong to others).
         if (AppPaths.IsInstalled) return Path.Combine(AppPaths.DataDir, relative);
 
         var dir = new DirectoryInfo(AppPaths.ExeDir);
@@ -352,40 +340,40 @@ public sealed class AppSettings
 
 public sealed class OcrSettings
 {
-    /// <summary>Файл модели относительно папки models.</summary>
+    /// <summary>Model file relative to the models folder.</summary>
     public string ModelFile { get; set; } = @"ocr\paddleocr-vl-1.6\PaddleOCR-VL-1.6-GGUF.gguf";
 
-    /// <summary>Файл vision-проектора относительно папки models.</summary>
+    /// <summary>Vision projector file relative to the models folder.</summary>
     public string MmprojFile { get; set; } = @"ocr\paddleocr-vl-1.6\PaddleOCR-VL-1.6-GGUF-mmproj.gguf";
 
-    /// <summary>Шаблон чата относительно папки models (если файла нет — используется встроенный в модель).</summary>
+    /// <summary>Chat template relative to the models folder (if missing, the model's built-in one is used).</summary>
     public string ChatTemplateFile { get; set; } = @"ocr\paddleocr-vl-1.6\chat_template.jinja";
 
-    /// <summary>Порт llama-server. 0 — выбрать свободный автоматически.</summary>
+    /// <summary>llama-server port. 0 — pick a free one automatically.</summary>
     public int Port { get; set; } = 0;
 
     public int ContextSize { get; set; } = 4096;
     public int GpuLayers { get; set; } = 99;
 
-    /// <summary>Максимум токенов в ответе (защита от зацикливания модели).</summary>
+    /// <summary>Max tokens in a reply (protects against the model looping).</summary>
     public int MaxTokens { get; set; } = 2048;
 
-    /// <summary>Увеличивать мелкие области перед распознаванием (лучше читается мелкий шрифт).</summary>
+    /// <summary>Upscale small regions before recognition (small fonts read better).</summary>
     public bool UpscaleSmallImages { get; set; } = true;
 
-    /// <summary>Максимум пикселей в одном куске картинки (как в модели: 1003520). Больше — режем на полосы.</summary>
+    /// <summary>Max pixels in one image tile (as in the model: 1003520). Larger images are cut into strips.</summary>
     public int MaxPixelsPerTile { get; set; } = 1_000_000;
 
-    /// <summary>Загружать модель сразу при нажатии клавиши, пока выделяется область.</summary>
+    /// <summary>Start loading the model as soon as the hotkey is pressed, while the region is being selected.</summary>
     public bool PreloadOnHotkey { get; set; } = true;
 }
 
 public sealed class TextModelSettings
 {
-    /// <summary>Файл модели относительно папки models.</summary>
+    /// <summary>Model file relative to the models folder.</summary>
     public string ModelFile { get; set; } = @"llm\gemma-4-12b-qat\gemma-4-12b-it-qat-q4_0.gguf";
 
-    /// <summary>Порт llama-server. 0 — выбрать свободный автоматически.</summary>
+    /// <summary>llama-server port. 0 — pick a free one automatically.</summary>
     public int Port { get; set; } = 0;
 
     public int ContextSize { get; set; } = 8192;
@@ -393,37 +381,37 @@ public sealed class TextModelSettings
     public double Temperature { get; set; } = 0.3;
     public int MaxTokens { get; set; } = 4096;
 
-    /// <summary>Начинать загрузку модели, как только открылось окно действий.</summary>
+    /// <summary>Start loading the model as soon as the action window opens.</summary>
     public bool PreloadOnMenu { get; set; } = true;
 
     /// <summary>
-    /// Аудио-проектор (mmproj) для голосового ввода, относительно папки models.
-    /// Пусто — взять файл из каталога для выбранной модели, если он скачан.
+    /// Audio projector (mmproj) for voice input, relative to the models folder.
+    /// Empty — take the file from the catalog for the selected model, if it is downloaded.
     /// </summary>
     public string MmprojFile { get; set; } = "";
 
-    /// <summary>Дополнительные аргументы llama-server (через пробел), если понадобятся.</summary>
+    /// <summary>Extra llama-server arguments (space-separated), if needed.</summary>
     public string ExtraArgs { get; set; } = "";
 }
 
 public sealed class VoiceSettings
 {
-    /// <summary>Загружать вместе с моделью перевода её аудио-часть (нужно для голосового ввода).</summary>
+    /// <summary>Load the translation model's audio part together with it (needed for voice input).</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Закончить запись, если после речи столько секунд тишины (0 — только вручную).</summary>
+    /// <summary>Stop recording after this many seconds of silence following speech (0 — manual only).</summary>
     public double AutoStopSilenceSeconds { get; set; } = 2.0;
 
-    /// <summary>Самая длинная запись (секунд).</summary>
+    /// <summary>Longest recording (seconds).</summary>
     public int MaxSeconds { get; set; } = 180;
 
-    /// <summary>Микрофон (название из списка Windows). Пусто — микрофон по умолчанию.</summary>
+    /// <summary>Microphone (name from the Windows list). Empty — default microphone.</summary>
     public string Microphone { get; set; } = "";
 }
 
 public sealed class TranslationSettings
 {
-    /// <summary>Куда переводить по умолчанию: язык текста → язык перевода (en, ru, uk, zh).</summary>
+    /// <summary>Default translation direction: text language → target language (en, ru, uk, zh).</summary>
     public Dictionary<string, string> DefaultTargets { get; set; } = new()
     {
         ["ru"] = "en",
@@ -432,18 +420,18 @@ public sealed class TranslationSettings
         ["zh"] = "ru",
     };
 
-    /// <summary>Последний выбранный вручную язык перевода для каждого языка текста.</summary>
+    /// <summary>Last manually chosen target language for each text language.</summary>
     public Dictionary<string, string> LastTargets { get; set; } = new();
 
     /// <summary>
-    /// Словарь терминов: строки «термин => перевод» (или «термин => =», чтобы не переводить).
-    /// В запрос попадают только термины, которые есть в тексте.
+    /// Glossary: lines "term => translation" (or "term => =" to keep it untranslated).
+    /// Only terms that occur in the text are sent with the request.
     /// </summary>
-    /// Для новых установок пусто; у существующих настроек сохраняется то, что уже есть.
+    /// Empty for new installs; existing settings keep what they have.
     public List<string> Glossary { get; set; } = [];
 }
 
-/// <summary>Своё действие: имя и указание для модели. Текст подставляется сам.</summary>
+/// <summary>Custom action: name and instruction for the model. The text is added automatically.</summary>
 public sealed class CustomAction
 {
     public string Name { get; set; } = "";

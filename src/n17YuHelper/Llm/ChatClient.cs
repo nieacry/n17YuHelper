@@ -4,12 +4,12 @@ using System.Text.Json.Nodes;
 
 namespace N17YuHelper.Llm;
 
-/// <summary>Запросы к /v1/chat/completions с выводом ответа по мере генерации.</summary>
+/// <summary>Requests to /v1/chat/completions with the reply streamed as it is generated.</summary>
 public static class ChatClient
 {
     /// <summary>
-    /// Отправляет сообщения и вызывает onDelta для каждого нового куска текста.
-    /// Возвращает весь ответ целиком.
+    /// Sends messages and calls onDelta for every new piece of text.
+    /// Returns the whole reply.
     /// </summary>
     public static async Task<string> StreamAsync(
         LlamaServer server,
@@ -29,7 +29,7 @@ public static class ChatClient
             ["top_k"] = 64,
             ["max_tokens"] = maxTokens,
             ["stream"] = true,
-            // Режим «размышления» не нужен: только замедляет ответ.
+            // "Thinking" mode is not needed: it only slows the reply down.
             ["chat_template_kwargs"] = new JsonObject { ["enable_thinking"] = false },
         };
         if (extra is not null)

@@ -14,8 +14,8 @@ public sealed record GrammarResult(string Original, string Corrected, IReadOnlyL
 }
 
 /// <summary>
-/// Проверка орфографии, грамматики и пунктуации локальной моделью.
-/// Ответ модели ограничен JSON-схемой, поэтому всегда разбирается.
+/// Spelling, grammar and punctuation check with a local model.
+/// The model's reply is constrained by a JSON schema, so it always parses.
 /// </summary>
 public sealed class GrammarService(LlamaServer server, Func<AppSettings> settings)
 {
@@ -98,13 +98,13 @@ public sealed class GrammarService(LlamaServer server, Func<AppSettings> setting
                 var from = item?["from"]?.GetValue<string>() ?? "";
                 var to = item?["to"]?.GetValue<string>() ?? "";
                 var reason = item?["reason"]?.GetValue<string>() ?? "";
-                // Маленькие модели иногда перечисляют фрагменты «без изменений» — пропускаем их.
+                // Small models sometimes list "unchanged" fragments — skip them.
                 if (from.Trim() == to.Trim()) continue;
                 fixes.Add(new GrammarFix(from, to, reason));
             }
         }
 
-        // Сохраняем переносы строк как в исходном тексте.
+        // Keep line breaks as in the source text.
         if (original.Contains("\r\n") && !corrected.Contains("\r\n"))
             corrected = corrected.Replace("\n", "\r\n");
         return new GrammarResult(original, corrected, fixes, lang);

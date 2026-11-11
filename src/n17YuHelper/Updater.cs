@@ -3,9 +3,9 @@ using System.Diagnostics;
 namespace N17YuHelper;
 
 /// <summary>
-/// Обновление без ручного закрытия программы: новая версия кладётся рядом как
-/// n17YuHelper.update.exe, программа это замечает и по команде перезапускается:
-/// маленький cmd-скрипт ждёт выхода, подменяет exe и запускает его снова.
+/// Update without closing the app by hand: the new version is put next to it as
+/// n17YuHelper.update.exe, the app notices it and restarts on command:
+/// a small cmd script waits for the exit, swaps the exe and starts it again.
 /// </summary>
 internal sealed class Updater : IDisposable
 {
@@ -15,7 +15,7 @@ internal sealed class Updater : IDisposable
     private readonly System.Windows.Forms.Timer _settle = new() { Interval = 1500 };
     private long _lastSize = -1;
 
-    /// <summary>Новая версия лежит рядом и готова к установке.</summary>
+    /// <summary>A new version is next to the exe and ready to install.</summary>
     public event Action? UpdateReady;
 
     public static string Dir => AppContext.BaseDirectory;
@@ -42,17 +42,17 @@ internal sealed class Updater : IDisposable
         }
     }
 
-    // События FileSystemWatcher приходят из другого потока: таймер запускаем через UI-поток.
+    // FileSystemWatcher events come from another thread: start the timer via the UI thread.
     private void OnFileEvent() =>
         SynchronizationContextHolder.Post(() => { _lastSize = -1; _settle.Stop(); _settle.Start(); });
 
-    /// <summary>Проверить при запуске: вдруг обновление уже лежит рядом.</summary>
+    /// <summary>Check at startup: the update may already be there.</summary>
     public void CheckNow()
     {
         if (HasUpdate) OnFileEvent();
     }
 
-    /// <summary>Ждём, пока файл перестанет расти (копирование завершено).</summary>
+    /// <summary>Wait until the file stops growing (copying finished).</summary>
     private void CheckSettled()
     {
         try
@@ -69,11 +69,11 @@ internal sealed class Updater : IDisposable
         }
         catch (IOException)
         {
-            // файл ещё пишется
+            // the file is still being written
         }
     }
 
-    /// <summary>Запускает подмену exe и перезапуск. После вызова программа должна сразу выйти.</summary>
+    /// <summary>Starts swapping the exe and restarting. After the call the app must exit right away.</summary>
     public static bool StartApplyAndRestart()
     {
         try
@@ -113,7 +113,7 @@ internal sealed class Updater : IDisposable
     }
 }
 
-/// <summary>Контекст UI-потока для событий из фоновых потоков.</summary>
+/// <summary>UI thread context for events from background threads.</summary>
 internal static class SynchronizationContextHolder
 {
     public static SynchronizationContext? Context { get; set; }

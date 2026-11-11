@@ -2,18 +2,18 @@ using System.Text.RegularExpressions;
 
 namespace N17YuHelper.Translate;
 
-/// <summary>Кусок длинного текста и то, что стояло после него (пустые строки), — чтобы собрать перевод обратно.</summary>
+/// <summary>A piece of long text and what followed it (empty lines) — to assemble the translation back.</summary>
 public sealed record TextChunk(string Text, string Separator);
 
 /// <summary>
-/// Делит длинный текст на куски для перевода: по абзацам (пустым строкам), длинные абзацы — по строкам,
-/// а совсем длинные строки — по предложениям. Разделители сохраняются как были.
+/// Splits long text into pieces for translation: by paragraphs (empty lines), long paragraphs — by lines,
+/// and very long lines — by sentences. Separators are kept as they were.
 /// </summary>
 public static class TextChunker
 {
     public static List<TextChunk> Split(string text, int maxChars)
     {
-        // Части: [текст, разделитель, текст, разделитель, ...]
+        // Parts: [text, separator, text, separator, ...]
         var parts = Regex.Split(text, @"(\r?\n[ \t]*\r?\n(?:[ \t]*\r?\n)*)");
         var units = new List<(string Text, string Sep)>();
         for (int i = 0; i < parts.Length; i += 2)
@@ -25,13 +25,13 @@ public static class TextChunker
                 units.Add((body, sep));
                 continue;
             }
-            // Длинный абзац — по строкам, потом по предложениям.
+            // Long paragraph — by lines, then by sentences.
             var pieces = SplitKeeping(body, @"(\r?\n)", maxChars);
             for (int k = 0; k < pieces.Count; k++)
                 units.Add((pieces[k].Text, k == pieces.Count - 1 ? sep : pieces[k].Sep));
         }
 
-        // Склеиваем соседние части, пока помещаются.
+        // Merge neighbouring parts while they fit.
         var chunks = new List<TextChunk>();
         string cur = "", curSep = "";
         bool has = false;
@@ -64,7 +64,7 @@ public static class TextChunker
                 result.Add((body, sep));
                 continue;
             }
-            // Строка длиннее лимита: режем по концу предложения, в крайнем случае — по пробелу.
+            // Line longer than the limit: cut at the end of a sentence, or at a space as a last resort.
             int pos = 0;
             while (body.Length - pos > maxChars)
             {
@@ -80,7 +80,7 @@ public static class TextChunker
                 }
                 if (cut < 0) cut = body.LastIndexOf(' ', limit - 1, maxChars / 2) + 1;
                 if (cut <= pos) cut = limit;
-                // Пробел после точки остаётся разделителем.
+                // The space after the period stays a separator.
                 int next = cut;
                 while (next < body.Length && body[next] == ' ') next++;
                 result.Add((body[pos..cut], body[cut..next]));
@@ -91,7 +91,7 @@ public static class TextChunker
         return result;
     }
 
-    /// <summary>Собирает переводы кусков обратно с исходными разделителями.</summary>
+    /// <summary>Assembles the translated pieces back with the original separators.</summary>
     public static string Join(IReadOnlyList<TextChunk> chunks, IReadOnlyList<string> translated)
     {
         var sb = new System.Text.StringBuilder();

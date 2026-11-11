@@ -1,71 +1,72 @@
-# n17 YuHelper — заметки для разработки (читать первым)
+# n17 YuHelper — development notes (read first)
 
-Приложение в трее Windows (логика как у ShareX): глобальная клавиша → рамка области экрана или выделенный текст / голос / файл → окно действий: перевод, распознавание текста (OCR) в буфер, проверка грамматики, свои действия. Всё на локальных моделях через llama.cpp.
+A Windows tray app (works like ShareX): global hotkey → region frame, selected text, voice or a file → action window: translation, text recognition (OCR) to the clipboard, grammar check, custom actions. Everything runs on local models through llama.cpp.
 
-Текущая версия: **0.15** (см. CHANGELOG.md). Подробности устройства — docs/ARCHITECTURE.md, планы и идеи — docs/ROADMAP.md, для пользователей — README.md (английский) и README.ru.md.
+Current version: **0.15** (see CHANGELOG.md). How it is built — docs/ARCHITECTURE.md, plans and ideas — docs/ROADMAP.md, for users — README.md (English) and README.uk.md (Ukrainian).
 
-## Правила проекта (обязательно)
+## Project rules (mandatory)
 
-- Личные заметки владельца (путь к папке, его компьютер) — в `CLAUDE.local.md`, этот файл не попадает в git. Читать его тоже.
-- Код открытый: https://github.com/nieacry/n17YuHelper (лицензия MIT). В репозиторий не класть модели, llama.cpp, publish/, versions/, settings.json, history.json, журналы.
-- `publish\` — всегда актуальная версия; `versions\vX.Y.Z\` — копия каждой выпущенной версии.
-- Модели — в `models\` папки разработки, llama-server — в `runtime\llama-server\`.
-- **Весь интерфейс — только на английском.** Документация (CHANGELOG, этот файл, docs/) и комментарии в коде — на русском. README.md и release-notes/ — на английском (для всех), README.ru.md — по-русски; менять оба README вместе.
-- Языки: EN, RU, UK, ZH. Перевод по умолчанию: ru/uk → en, en → ru, zh → ru.
-- Горячие клавиши — всегда Ctrl+Shift+Win+…; Q = Auto (умная клавиша). Ctrl+Shift+Win+B запрещена (сброс видеодрайвера).
-- Важны скорость и малое потребление ресурсов в трее. Дизайн — современный, аккуратный (Fluent: Segoe UI Variable, Segoe Fluent Icons, акцент Windows, тёмная/светлая тема).
-- В рамке выделения не нужна лупа.
-- Владелец предпочитает, чтобы работа шла версиями: сделал → собрал → выложил → коротко отчитался.
+- The owner's personal notes (folder path, their PC) are in `CLAUDE.local.md`, which is not in git. Read it too.
+- Open source: https://github.com/nieacry/n17YuHelper (MIT). Never commit models, llama.cpp, publish/, versions/, settings.json, history.json or logs.
+- **Everything in the repository is in English**: UI, Markdown files (CHANGELOG, docs/, this file, release-notes/), code comments, commit messages. The only other language is Ukrainian in `README.uk.md` — update both READMEs together. No Russian text in the repository (Cyrillic only where the code needs it: language detection, grammar prompts, transcript prefixes, test samples).
+- Reports to the owner in chat are in Russian.
+- `publish\` always holds the current version; `versions\vX.Y.Z\` holds a copy of every released version.
+- Models are in `models\` of the dev folder, llama-server in `runtime\llama-server\`.
+- Languages: EN, RU, UK, ZH. Default translation: ru/uk → en, en → ru, zh → ru.
+- Hotkeys are always Ctrl+Shift+Win+…; Q = Auto (smart key). Ctrl+Shift+Win+B is forbidden (graphics driver reset).
+- Speed and low resource use in the tray matter. Design: modern and clean (Fluent: Segoe UI Variable, Segoe Fluent Icons, Windows accent, dark/light theme).
+- No magnifier in the region frame.
+- The owner prefers working in versions: change → build → deploy → short report.
 
-## Стек
+## Stack
 
-C# / .NET 10 WinForms, один exe (framework-dependent single-file, ReadyToRun, нужен .NET 10 Desktop Runtime). NuGet: ZXing.Net 0.16.11 (QR), PdfPig 0.1.16 (PDF, исключён из R2R), Velopack 1.2.161 (установка и обновления). Остальное — Win32 P/Invoke без библиотек.
+C# / .NET 10 WinForms, a single exe (framework-dependent single-file, ReadyToRun, needs the .NET 10 Desktop Runtime). NuGet: ZXing.Net 0.16.11 (QR), PdfPig 0.1.16 (PDF, excluded from R2R), Velopack 1.2.161 (install and updates). Everything else is Win32 P/Invoke without libraries.
 
-## Сборка
+## Build
 
-На Windows: `build.cmd 0.12` → `publish\` и `versions\v0.12\`. Перед этим закрыть программу или использовать обновление ниже.
+On Windows: `build.cmd 0.16` → `publish\` and `versions\v0.16\`. Close the app first or use the update mechanism below.
 
-В облачной сессии (Linux): SDK в `/opt/dotnet` (если нет — поставить .NET 10 SDK).
+In a cloud session (Linux): SDK in `/opt/dotnet` (if missing, install the .NET 10 SDK).
 ```
 export PATH=/opt/dotnet:$PATH DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
-dotnet build src/n17YuHelper -c Release          # должно быть 0 предупреждений
+dotnet build src/n17YuHelper -c Release -warnaserror   # must have 0 warnings
 dotnet publish src/n17YuHelper/n17YuHelper.csproj -c Release -o /tmp/pub
 ```
-Версия — `<Version>` в `src/n17YuHelper/n17YuHelper.csproj` (поднимать при каждом выпуске). `EnableWindowsTargeting` уже включён.
+The version is `<Version>` in `src/n17YuHelper/n17YuHelper.csproj` (bump it on every release). `EnableWindowsTargeting` is already on.
 
-## Выпуск версии (порядок)
+## Releasing a version (order)
 
-1. Поднять `<Version>`, дописать CHANGELOG.md (сверху, по-русски), при необходимости README.md.
-2. Собрать, скопировать exe в `versions\vX.Y.Z\n17YuHelper.exe`.
-3. Тот же файл положить как `publish\n17YuHelper.update.exe` — запущенная программа сама подхватит его, когда простаивает (нет открытых окон / записи / работы), заменит exe и перезапустится (`--updated`). Закрывать программу не нужно.
-4. Проверить в `publish\logs\yuhelper.log`: строка `Starting n17 YuHelper X.Y.Z`.
+1. Bump `<Version>`, add a CHANGELOG.md entry at the top, update both READMEs if needed.
+2. Build, copy the exe to `versions\vX.Y.Z\n17YuHelper.exe`.
+3. Put the same file as `publish\n17YuHelper.update.exe` — the running app picks it up when idle (no open windows / recording / work), swaps the exe and restarts (`--updated`). No need to close the app.
+4. Check `publish\logs\yuhelper.log` for `Starting n17 YuHelper X.Y.Z`.
 
-**Из облачной сессии через мост устройства:** копировать в `/mnt/user-data/outputs/...`, затем `device_commit_files` с `force: true`. Важно: `publish\n17YuHelper.update.exe` коммитить из **нового** staged-пути (`.../versions/vX.Y.Z/n17YuHelper.exe`), а не из одного и того же `publish/n17YuHelper.update.exe` — повторный коммит с того же пути однажды записал старый файл. После коммита подождать ~20 с и проверить версию в журнале.
+**From a cloud session via the device bridge:** copy to `/mnt/user-data/outputs/...`, then `device_commit_files` with `force: true`. Important: commit `publish\n17YuHelper.update.exe` from a **new** staged path (`.../versions/vX.Y.Z/n17YuHelper.exe`), not from the same `publish/n17YuHelper.update.exe` — re-committing from the same path once wrote an old file. After committing wait ~20 s and check the version in the log. Files under `.github\` cannot be written via the bridge (protected) — they live only in git.
 
-## Публичный выпуск (GitHub Releases, Velopack)
+## Public release (GitHub Releases, Velopack)
 
-Для установленных копий у пользователей. Собирает GitHub Actions (`.github/workflows/release.yml`) на Windows.
-1. Написать `release-notes/X.Y.Z.md` — заметки **на английском** (их видят пользователи; CHANGELOG — по-русски). Закоммитить и `git push origin main`.
-2. Запустить сборку: `gh api -X POST repos/nieacry/n17YuHelper/actions/workflows/release.yml/dispatches -f ref=main -f 'inputs[version]=X.Y.Z'`.
-   (Из облачной сессии нельзя пушить теги и создавать релизы напрямую — 403; `gh workflow run` тоже не работает — нет GraphQL.)
-3. Workflow: `dotnet publish` → `vpk download github` (прошлый выпуск, для дельта-обновлений) → `vpk pack` → `vpk upload github --publish` (создаёт тег vX.Y.Z). Проверить: `gh api repos/nieacry/n17YuHelper/actions/runs --jq '.workflow_runs[0]|[.status,.conclusion]'`, `gh api repos/nieacry/n17YuHelper/releases --jq '.[0].tag_name'`.
-- Пакет (packId) — `n17YuHelper`, менять нельзя: по нему находятся обновления.
-- Файлы в `.github\` через мост устройства не записываются (защищены) — они только в git.
+For installed copies on users' PCs. Built by GitHub Actions (`.github/workflows/release.yml`) on Windows.
+1. Write `release-notes/X.Y.Z.md` (English, users see it). Commit and `git push origin main`.
+2. Start the build: `gh api -X POST repos/nieacry/n17YuHelper/actions/workflows/release.yml/dispatches -f ref=main -f 'inputs[version]=X.Y.Z'`.
+   (From a cloud session, pushing tags and creating releases directly is not allowed — 403; `gh workflow run` does not work either — no GraphQL.)
+3. Workflow: `dotnet publish` → `vpk download github` (previous release, for delta updates) → `vpk pack` → `vpk upload github --publish` (creates the vX.Y.Z tag). Check: `gh api repos/nieacry/n17YuHelper/actions/runs --jq '.workflow_runs[0]|[.status,.conclusion]'`, `gh api repos/nieacry/n17YuHelper/releases --jq '.[0].tag_name'`.
+- The package id is `n17YuHelper` — never change it: updates are found by it.
+- Releases are unsigned (SignPath Foundation declined for now, see docs/SIGNING.md).
 
-## Каталог моделей (`catalog.json`)
+## Model catalog (`catalog.json`)
 
-Программа берёт его из `main` (raw.githubusercontent.com) и применяет, если `format` ≤ `ModelCatalog.SupportedFormat`. Генерируется из встроенного списка (`ModelCatalog.ExportBuiltin()`): меняя модели в `ModelCatalog.cs`, обновить и `catalog.json`. SHA256 брать из API Hugging Face (`/api/models/<repo>/tree/<rev>` → `lfs.oid`), для маленьких файлов — `curl -L … | sha256sum` (без `-L` получится хэш страницы перенаправления). Ссылки — на ревизию (`/resolve/<commit>/`), не на `main`.
+The app takes it from `main` (raw.githubusercontent.com) and applies it if `format` ≤ `ModelCatalog.SupportedFormat`. It is generated from the built-in list (`ModelCatalog.ExportBuiltin()`): when changing models in `ModelCatalog.cs`, regenerate `catalog.json`. Get SHA256 from the Hugging Face API (`/api/models/<repo>/tree/<rev>` → `lfs.oid`); for small files use `curl -L … | sha256sum` (without `-L` you hash the redirect page). Links point to a revision (`/resolve/<commit>/`), not to `main`.
 
-## Что нельзя проверить в облаке
+## What cannot be tested in the cloud
 
-Окна WinForms, хоткеи, микрофон, буфер обмена — только на Windows у владельца (просить скриншот / журнал). В Linux можно проверять логику: собрать консольный проект, подключив нужные .cs (заглушки для `JobObject` и `TrayApp.VersionText`), и гонять с собранным под Linux llama-server (модели: Gemma 4 E2B + mmproj ggml-org, PaddleOCR-VL). Так проверены OCR, перевод по частям, голос, docx/pptx.
+WinForms windows, hotkeys, microphone, clipboard — only on the owner's Windows (ask for a screenshot / log). On Linux you can test logic: build a console project including the needed .cs files (stubs for `JobObject` and `TrayApp.VersionText`) and run it with a Linux build of llama-server (models: Gemma 4 E2B + ggml-org mmproj, PaddleOCR-VL). OCR, chunked translation, voice and docx/pptx were tested this way.
 
-## Подводные камни
+## Pitfalls
 
-- `CopyPixelOperation.CaptureBlt` в .NET бросает исключение — снимок экрана через BitBlt (`RegionCaptureForm.CaptureScreen`).
-- Свойства форм, которые ставятся из кода, помечать `[DesignerSerializationVisibility(Hidden)]` (WFO1000).
-- `Application.SetColorMode` — экспериментальный (WFO5001 подавлен).
-- Окно действий закрывается при потере фокуса, кроме: правили текст, 📌 / `KeepWindowOpen`, идёт диктовка.
-- llama.cpp: Gemma — `chat_template_kwargs.enable_thinking=false`; грамматика и пакетный перевод документов — `response_format: json_schema`; PaddleOCR — `--jinja --chat-template-file`, промпты `OCR:` / `Table Recognition:` (OTSL) / `Formula Recognition:` (LaTeX).
-- Голос: аудио в `input_audio` (base64 WAV 16 кГц моно), ≤28 с за запрос; у Gemma 26B/31B и Qwen голосовой части нет. Если сборка llama.cpp не берёт mmproj — сервер запускается без него (`ServerLaunch.FallbackArgs`).
-- Релизы llama.cpp: в последних может не быть Windows-сборок — установщик смотрит 30 последних релизов.
+- `CopyPixelOperation.CaptureBlt` throws in .NET — the screen is captured via BitBlt (`RegionCaptureForm.CaptureScreen`).
+- Form properties set from code need `[DesignerSerializationVisibility(Hidden)]` (WFO1000).
+- `Application.SetColorMode` is experimental (WFO5001 suppressed).
+- The action window closes on focus loss, except: text was edited, 📌 / `KeepWindowOpen`, dictation in progress.
+- llama.cpp: Gemma — `chat_template_kwargs.enable_thinking=false`; grammar and batch document translation — `response_format: json_schema`; PaddleOCR — `--jinja --chat-template-file`, prompts `OCR:` / `Table Recognition:` (OTSL) / `Formula Recognition:` (LaTeX).
+- Voice: audio in `input_audio` (base64 WAV 16 kHz mono), ≤28 s per request; Gemma 26B/31B and Qwen have no audio part. If the llama.cpp build does not accept the mmproj, the server starts without it (`ServerLaunch.FallbackArgs`).
+- llama.cpp releases: the newest ones may have no Windows builds — the installer checks the last 30 releases (unless the catalog pins a tag).

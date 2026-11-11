@@ -4,14 +4,14 @@ namespace N17YuHelper;
 
 internal static class Program
 {
-    /// <summary>Файл из командной строки (открыть и перевести после запуска).</summary>
+    /// <summary>File from the command line (open and translate after startup).</summary>
     public static string? StartupFile { get; private set; }
 
     [STAThread]
     private static void Main(string[] args)
     {
-        // Velopack: служебные запуски установщика (установка / обновление / удаление) обрабатываются здесь и сразу завершаются.
-        // При установке включаем автозапуск с Windows (программа живёт в трее), при удалении — убираем его.
+        // Velopack: installer service runs (install / update / uninstall) are handled here and exit right away.
+        // On install, turn on start with Windows (the app lives in the tray); on uninstall, remove it.
         VelopackApp.Build()
             .OnAfterInstallFastCallback(_ => { try { Startup.Enable(); } catch { } })
             .OnBeforeUninstallFastCallback(_ => { try { if (Startup.IsEnabledForThisExe) Startup.Disable(); } catch { } })
@@ -22,7 +22,7 @@ internal static class Program
         using var mutex = new Mutex(initiallyOwned: true, @"Local\n17YuHelper_SingleInstance", out bool isFirst);
         if (!isFirst)
         {
-            // Уже запущена: передаём ей файл (если есть) и выходим.
+            // Already running: pass it the file (if any) and exit.
             if (StartupFile is not null && IpcWindow.SendFile(StartupFile)) return;
             MessageBox.Show("n17 YuHelper is already running. Look for its icon in the system tray.", "n17 YuHelper",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -31,7 +31,7 @@ internal static class Program
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         UI.Theme.Init(AppSettings.PeekTheme());
-#pragma warning disable WFO5001 // тёмный режим стандартных контролов (.NET 10)
+#pragma warning disable WFO5001 // dark mode for standard controls (.NET 10)
         Application.SetColorMode(UI.Theme.ColorMode);
 #pragma warning restore WFO5001
         Application.EnableVisualStyles();

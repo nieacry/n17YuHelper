@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 namespace N17YuHelper.UI;
 
 /// <summary>
-/// Перевод поверх оригинала: полупрозрачное окно на месте обведённой области.
-/// Не забирает фокус и не попадает в снимки экрана (поэтому в живом режиме
-/// программа видит под ним оригинал). Наведи мышь — появятся кнопки:
-/// живое обновление, копировать, закрыть. Тянуть — за любое место.
+/// Translation over the original: a semi-transparent window in place of the selected region.
+/// It does not take focus and is excluded from screen captures (so in live mode
+/// the app sees the original under it). Hover the mouse to show the buttons:
+/// live update, copy, close. Drag it by any spot.
 /// </summary>
 internal sealed class OverlayForm : Form
 {
@@ -62,7 +62,7 @@ internal sealed class OverlayForm : Form
         Controls.Add(_tools);
         Controls.Add(_text);
 
-        // Положение: прямо на месте области; если текст не помещается — вырастаем вниз.
+        // Position: right over the region; if the text does not fit — grow downwards.
         Bounds = region;
         FitFont();
 
@@ -92,7 +92,7 @@ internal sealed class OverlayForm : Form
         FitFont();
     }
 
-    /// <summary>Подбирает шрифт: от 12 pt вниз до 8 pt; если и так не влезает — окно растёт по высоте.</summary>
+    /// <summary>Picks the font: from 12 pt down to 8 pt; if it still does not fit, the window grows in height.</summary>
     private void FitFont()
     {
         var area = new Size(Math.Max(60, Width - 22), int.MaxValue);
@@ -156,7 +156,7 @@ internal sealed class OverlayForm : Form
         catch (Exception ex) { Log.Error("Overlay copy", ex); }
     }
 
-    /// <summary>Кнопки видны, пока мышь над окном.</summary>
+    /// <summary>Buttons are visible while the mouse is over the window.</summary>
     private void UpdateHover()
     {
         bool inside = Bounds.Contains(Cursor.Position);
@@ -189,7 +189,7 @@ internal sealed class OverlayForm : Form
             const int WS_EX_TOOLWINDOW = 0x80, WS_EX_TOPMOST = 0x8, WS_EX_NOACTIVATE = 0x08000000;
             var cp = base.CreateParams;
             cp.ExStyle |= WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE;
-            cp.ClassStyle |= 0x00020000; // тень
+            cp.ClassStyle |= 0x00020000; // shadow
             return cp;
         }
     }
@@ -198,7 +198,7 @@ internal sealed class OverlayForm : Form
     {
         base.OnHandleCreated(e);
         Theme.ApplyDwm(Handle);
-        // Окно не попадает в снимки экрана — в живом режиме видим под ним оригинал.
+        // The window is excluded from screen captures — in live mode we see the original under it.
         Native.SetWindowDisplayAffinity(Handle, Native.WDA_EXCLUDEFROMCAPTURE);
     }
 

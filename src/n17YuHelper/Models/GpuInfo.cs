@@ -12,7 +12,7 @@ public enum GpuVendor
     Other,
 }
 
-/// <summary>Видеокарта и объём её памяти (через DXGI — работает для NVIDIA, AMD и Intel).</summary>
+/// <summary>Graphics card and its memory (via DXGI — works for NVIDIA, AMD and Intel).</summary>
 public sealed record GpuInfo(string Name, GpuVendor Vendor, long VramBytes, string? NvidiaDriver)
 {
     public double VramGb => VramBytes / 1024.0 / 1024 / 1024;
@@ -22,7 +22,7 @@ public sealed record GpuInfo(string Name, GpuVendor Vendor, long VramBytes, stri
             ? "No dedicated GPU found"
             : $"{Name} · {VramGb:0.#} GB" + (NvidiaDriver is { } d ? $" · driver {d}" : "");
 
-    /// <summary>Сборка llama.cpp для этой видеокарты: cuda-13, cuda-12, vulkan или cpu.</summary>
+    /// <summary>llama.cpp build for this graphics card: cuda-13, cuda-12, vulkan or cpu.</summary>
     public string LlamaBuild
     {
         get
@@ -52,7 +52,7 @@ public sealed record GpuInfo(string Name, GpuVendor Vendor, long VramBytes, stri
             Log.Error("GPU detection (DXGI) failed", ex);
             result = new GpuInfo("Unknown", GpuVendor.None, 0, null);
         }
-        // Запасной путь для NVIDIA: nvidia-smi знает точный объём памяти.
+        // Fallback for NVIDIA: nvidia-smi knows the exact amount of memory.
         if (result.Vendor == GpuVendor.None && DetectNvidiaSmi() is { } nv) result = nv;
         Log.Info("GPU: " + result);
         return _cached = result;
@@ -157,7 +157,7 @@ public sealed record GpuInfo(string Name, GpuVendor Vendor, long VramBytes, stri
         public uint Flags;
     }
 
-    // Методы перечислены в порядке vtable, включая унаследованные от IDXGIObject / IDXGIFactory.
+    // Methods are listed in vtable order, including those inherited from IDXGIObject / IDXGIFactory.
     [ComImport, Guid("770aae78-f26f-4dba-a829-253c83d1b387"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IDXGIFactory1
     {

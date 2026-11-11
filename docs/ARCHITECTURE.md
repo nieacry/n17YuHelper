@@ -1,61 +1,61 @@
-# Устройство n17 YuHelper
+# How n17 YuHelper is built
 
-Всё в `src/n17YuHelper/` (≈10,6 тыс. строк C#). Пространство имён `N17YuHelper.*`.
+Everything is in `src/n17YuHelper/` (≈10.6k lines of C#). Namespace `N17YuHelper.*`.
 
-## Поток работы
+## Workflow
 
 ```
-Горячая клавиша (HotkeyManager, RegisterHotKey)
+Hotkey (HotkeyManager, RegisterHotKey)
   → TrayApp.RunAsync(HotkeyEntry)
       → GetInputAsync: Source = Auto | SelectedText | Region | Clipboard | LastRegion | Voice
-          SelectionGrabber (Ctrl+C / Ctrl+Insert, восстановление буфера)
-          RegionCaptureForm (рамка, прилипание к окнам WindowFinder)
-          RecordingToast + VoiceService (голос → текст)
+          SelectionGrabber (Ctrl+C / Ctrl+Insert, clipboard restore)
+          RegionCaptureForm (frame, snapping to windows via WindowFinder)
+          RecordingToast + VoiceService (voice → text)
       → Action = Menu | Ocr | OcrTable | OcrFormula | Translate | Grammar | Custom | AsIs
-      → After  = ShowWindow (ActionForm) | Copy | Replace (вставить в программу) | Overlay (поверх области)
+      → After  = ShowWindow (ActionForm) | Copy | Replace (paste into the app) | Overlay (over the region)
 ```
-Файлы: меню трея «Translate file...», перетаскивание в ActionForm, «Send to» Проводника (второй запуск передаёт путь через `IpcWindow`, WM_COPYDATA).
+Files: tray menu "Translate file...", drag and drop into ActionForm, Explorer "Send to" (a second start passes the path through `IpcWindow`, WM_COPYDATA).
 
-## Модели (llama.cpp)
+## Models (llama.cpp)
 
-- `Llm/LlamaServer` — свой процесс `llama-server.exe` на модель (OCR и текст), свободный порт, ожидание `/health`, Job Object (убивается вместе с программой), выгрузка через `ModelIdleUnloadMinutes` и при запуске тяжёлых программ (`UnloadWhileRunning`). `ServerLaunch.FallbackArgs` — повтор без необязательной части.
-- `Llm/ChatClient` — OpenAI `/v1/chat/completions`, стриминг SSE.
-- `TrayApp.BuildOcrLaunch / BuildTextLaunch` — аргументы; GPU-режим Auto / Both / OneAtATime (`BeforeStart` выгружает другую модель).
-- `Models/ModelCatalog` — пакеты моделей: URL на ревизию HF, размер, SHA256; формат catalog.json (`Apply`, `ExportBuiltin`); проверенный тег llama.cpp. `Models/CatalogUpdater` — сохранённый catalog.json при запуске, свежий с GitHub через 30 с.
-  `Audio` — mmproj для голоса; `RecommendedText(gpu)` (правила из каталога) по видеопамяти: ≥23 → 31B, ≥15 → 26B, ≥9.5 → 12B, ≥5.5 → E4B, иначе E2B.
-- `Models/Downloader` — докачка (.part + Range), проверка SHA256, установка llama.cpp из GitHub-релизов (проверенный тег, иначе свежий) (CUDA 13 / 12 / Vulkan / CPU по `GpuInfo`).
-- `Models/GpuInfo` — DXGI (видеопамять), запасной путь nvidia-smi.
-- `UI/ModelManagerForm` — менеджер моделей / мастер первого запуска, «Change models folder...»; зелёная рамка — рекомендуемая, красная — не влезает в память.
+- `Llm/LlamaServer` — one `llama-server.exe` process per model (OCR and text), a free port, waiting for `/health`, a Job Object (killed together with the app), unloading after `ModelIdleUnloadMinutes` and while heavy apps run (`UnloadWhileRunning`). `ServerLaunch.FallbackArgs` — retry without the optional part.
+- `Llm/ChatClient` — OpenAI `/v1/chat/completions`, SSE streaming.
+- `TrayApp.BuildOcrLaunch / BuildTextLaunch` — arguments; GPU mode Auto / Both / OneAtATime (`BeforeStart` unloads the other model).
+- `Models/ModelCatalog` — model packages: URL pinned to an HF revision, size, SHA256; the catalog.json format (`Apply`, `ExportBuiltin`); the tested llama.cpp tag. `Models/CatalogUpdater` — the saved catalog.json at startup, a fresh one from GitHub after 30 s.
+  `Audio` — mmproj for voice; `RecommendedText(gpu)` (rules from the catalog) by GPU memory: ≥23 → 31B, ≥15 → 26B, ≥9.5 → 12B, ≥5.5 → E4B, otherwise E2B.
+- `Models/Downloader` — resume (.part + Range), SHA256 check, installing llama.cpp from GitHub releases (tested tag, otherwise the newest; CUDA 13 / 12 / Vulkan / CPU by `GpuInfo`).
+- `Models/GpuInfo` — DXGI (GPU memory), nvidia-smi fallback.
+- `UI/ModelManagerForm` — model manager / first-run wizard, "Change models folder..."; green border — recommended, red — does not fit into memory.
 
-## Сервисы
+## Services
 
-- `Ocr/OcrService` — PaddleOCR-VL: текст (с нарезкой на плитки и увеличением мелкого), таблица (OTSL → TSV/HTML, `TableFormat`), формула (LaTeX).
-- `Translate/TranslationService` — перевод: длинный текст по частям (`TextChunker`, ~2000 символов, разделители сохраняются); `TranslateBatchAsync` — пачка абзацев за запрос с json_schema (для документов); словарь терминов (`Glossary`) подмешивается в промпт.
-- `Translate/Languages` — определение языка по письменности/буквам (ru/uk различаются по ґєії / ыэъё).
-- `Translate/PromptService` — свои действия (`CustomActions`).
-- `Grammar/GrammarService` + `TextDiff` — исправления в JSON, подсветка правок по словам.
-- `Voice/AudioRecorder` — waveIn 16 кГц моно, выбор микрофона; `Voice/VoiceService` — обрезка тишины, нарезка ≤28 с по паузам, `input_audio`, проверка `/props` modalities.audio.
-- `Files/DocumentReader` — txt (UTF-8/16/1251), docx, pptx, rtf, PDF (PdfPig; сканы → картинка страницы → OCR), картинки.
-- `Files/OfficeTranslator` — перевод docx/pptx с оформлением: абзацы → части с одинаковым форматированием → теги `<1>…</1>` → пачки → запись текста обратно в прогоны, язык документа меняется.
-- `Tools/QrReader` (ZXing), `Tools/Speech` (SAPI, озвучка), пиньинь — через модель.
+- `Ocr/OcrService` — PaddleOCR-VL: text (tiling and upscaling small regions), table (OTSL → TSV/HTML, `TableFormat`), formula (LaTeX).
+- `Translate/TranslationService` — translation: long text in pieces (`TextChunker`, ~2000 characters, separators kept); `TranslateBatchAsync` — a batch of paragraphs per request with json_schema (for documents); the glossary is added to the prompt.
+- `Translate/Languages` — language detection by script/letters (ru/uk are told apart by ґєії / ыэъё).
+- `Translate/PromptService` — custom actions (`CustomActions`).
+- `Grammar/GrammarService` + `TextDiff` — fixes as JSON, word-level highlighting.
+- `Voice/AudioRecorder` — waveIn 16 kHz mono, microphone choice; `Voice/VoiceService` — silence trimming, cutting into ≤28 s pieces at pauses, `input_audio`, `/props` modalities.audio check.
+- `Files/DocumentReader` — txt (UTF-8/16/1251), docx, pptx, rtf, PDF (PdfPig; scans → page image → OCR), images.
+- `Files/OfficeTranslator` — docx/pptx translation keeping formatting: paragraphs → parts with the same formatting → tags `<1>…</1>` → batches → text written back into runs; the document language is switched.
+- `Tools/QrReader` (ZXing), `Tools/Speech` (SAPI, text-to-speech), pinyin — via the model.
 
-## Интерфейс
+## UI
 
-- `UI/Theme` — цвета (System/Light/Dark, акцент Windows из реестра DWM), шрифты, DWM (тёмная рамка, скругления).
-- `UI/ModernControls` — ModernButton (Normal/Accent/Ghost, глиф, подсказка-цифра), Card (с цветной отметкой `Mark`), BusyLine, Caption.
-- `UI/ActionForm` — главное окно действий: заголовок (язык, 📂, 🎤, 📌, ×), поле текста / картинка, результат, кнопки 1–9 (Translate, Recognize ▾, Grammar, Copy, Replace, Actions, Save). Снимок при закрытии (`WindowSnapshot`) → «Open last window».
-- `UI/OverlayForm` — перевод поверх области (исключён из захвата экрана, живой режим).
-- `UI/RecordingToast` — плашка записи (без фокуса, Esc — глобально на время записи).
-- `UI/SettingsForm` — страницы Hotkeys / General / Models / Translation / Actions.
-- `UI/History` — `HistoryStore` (history.json, ленивое чтение) и окно истории с поиском.
+- `UI/Theme` — colors (System/Light/Dark, Windows accent from the DWM registry), fonts, DWM (dark frame, rounded corners).
+- `UI/ModernControls` — ModernButton (Normal/Accent/Ghost, glyph, digit hint), Card (with a colored `Mark`), BusyLine, Caption.
+- `UI/ActionForm` — the main action window: header (language, 📂, 🎤, 📌, ×), text box / image, result, buttons 1–9 (Translate, Recognize ▾, Grammar, Copy, Replace, Actions, Save). Snapshot on close (`WindowSnapshot`) → "Open last window".
+- `UI/OverlayForm` — translation over the region (excluded from screen capture, live mode).
+- `UI/RecordingToast` — recording bar (no focus, Esc is global while recording).
+- `UI/SettingsForm` — pages Hotkeys / General / Models / Translation / Actions.
+- `UI/History` — `HistoryStore` (history.json, lazy reading) and the history window with search.
 - `UI/ProgressToast`, `UI/HotkeyBox`.
 
-## Прочее
+## Other
 
-- `AppPaths` — где данные: переносной режим (рядом с exe) или установленная программа (`%LocalAppData%\n17YuHelper`, на уровень выше папки `current`).
-- `AppSettings` — settings.json в папке данных, `SettingsVersion` + `Migrate()` (сейчас 10). Новые клавиши по умолчанию добавлять через миграцию.
-- `Updater` — `n17YuHelper.update.exe` рядом с exe → применяется, когда программа простаивает (переносная копия).
-- `OnlineUpdater` — Velopack + GitHub Releases для установленной программы: проверка через минуту и раз в 6 ч, скачивание в фоне, установка через `WaitExitThenApplyUpdates` (когда программа простаивает или по команде). `Program.Main` начинается с `VelopackApp.Build()…Run()` (хуки установки/удаления: автозапуск).
-- `Startup` — автозапуск (HKCU Run). `Log` — `publish\logs\yuhelper.log` (+ llama-ocr.log, llama-text.log).
-- `tools/setup-models.ps1` — запасной скрипт скачивания моделей и llama.cpp.
-- `tests/samples/` — картинки для проверки OCR на 4 языках.
+- `AppPaths` — where the data is: portable mode (next to the exe) or installed app (`%LocalAppData%\n17YuHelper`, one level above the `current` folder).
+- `AppSettings` — settings.json in the data folder, `SettingsVersion` + `Migrate()` (currently 10). Add new default hotkeys through a migration.
+- `Updater` — `n17YuHelper.update.exe` next to the exe → applied when the app is idle (portable copy).
+- `OnlineUpdater` — Velopack + GitHub Releases for the installed app: check after a minute and every 6 h, background download, install via `WaitExitThenApplyUpdates` (when idle or on command). `Program.Main` starts with `VelopackApp.Build()…Run()` (install/uninstall hooks: start with Windows).
+- `Startup` — start with Windows (HKCU Run). `Log` — `logs\yuhelper.log` in the data folder (+ llama-ocr.log, llama-text.log).
+- `tools/setup-models.ps1` — fallback script for downloading models and llama.cpp.
+- `tests/samples/` — images for checking OCR in 4 languages.

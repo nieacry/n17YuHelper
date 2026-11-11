@@ -1,8 +1,8 @@
 namespace N17YuHelper.Models;
 
 /// <summary>
-/// Свежий каталог моделей из репозитория (catalog.json). При запуске применяется сохранённая копия
-/// (catalog.json в папке данных), через полминуты в фоне скачивается новая. Без интернета — встроенный список.
+/// Fresh model catalog from the repository (catalog.json). At startup the saved copy is applied
+/// (catalog.json in the data folder); half a minute later a new one is downloaded in the background. Offline — the built-in list.
 /// </summary>
 internal static class CatalogUpdater
 {
@@ -10,7 +10,7 @@ internal static class CatalogUpdater
 
     private static string CachePath => Path.Combine(AppPaths.DataDir, "catalog.json");
 
-    /// <summary>Применить сохранённый каталог (быстро, при запуске).</summary>
+    /// <summary>Apply the saved catalog (fast, at startup).</summary>
     public static void LoadCached()
     {
         try
@@ -25,7 +25,7 @@ internal static class CatalogUpdater
         }
     }
 
-    /// <summary>Скачать свежий каталог и применить его, если он правильный.</summary>
+    /// <summary>Download a fresh catalog and apply it if it is valid.</summary>
     public static async Task RefreshAsync()
     {
         try

@@ -1,206 +1,209 @@
-# Изменения
+# Changelog
 
 ## v0.15 — 2026-11-11
 
-Публичная бета.
+Public beta.
 
-- Меню трея → Help: «What's new» (выпуски на GitHub), «Report a problem...» (форма ошибки), «Project page (GitHub)».
-- README.md теперь на английском (для всех), русский — README.ru.md. Таблица: какая модель и сколько качать под объём видеопамяти; раздел о приватности.
-- `CODE_SIGNING_POLICY.md` и `docs/SIGNING.md` — подготовка к бесплатной подписи SignPath Foundation (заявку подаёт владелец).
-- GitHub Actions: проверка сборки на каждый push (`build.yml`, предупреждения = ошибки), шаблон сообщения об ошибке.
+- Tray menu → Help: "What's new" (releases on GitHub), "Report a problem..." (bug report form), "Project page (GitHub)".
+- README.md is now in English (for everyone), with a Ukrainian translation in README.uk.md. A table of which model and how much to download for each amount of GPU memory; a privacy section.
+- `CODE_SIGNING_POLICY.md` and `docs/SIGNING.md` — preparation for free SignPath Foundation code signing.
+- GitHub Actions: build check on every push (`build.yml`, warnings are errors), bug report template.
+- All documentation and code comments are in English.
 
 ## v0.14 — 2026-11-11
 
-Надёжная загрузка моделей.
+Reliable model downloads.
 
-- Каталог моделей теперь лежит и в репозитории (`catalog.json`): программа через полминуты после запуска скачивает свежий и сохраняет его в папке данных. Так ссылки можно поправить, а модель добавить без выпуска новой версии. Без интернета — встроенный список.
-- Ссылки на Hugging Face закреплены на проверенной ревизии; у каждого файла есть SHA256. После скачивания файл проверяется («Checking …»), испорченный удаляется — следующая попытка скачает его заново.
-- llama.cpp ставится проверенной сборки (`b12248`, задаётся в каталоге), а не самой свежей. Если в ней нет сборки для этой видеокарты — берётся последняя. Архивы llama.cpp тоже проверяются по SHA256 (из GitHub). В Models... видно «tested version», кнопка — «Update to b12248» / «Reinstall».
-- Models... → «Change models folder...»: выбрать папку для моделей (например, на другом диске). Уже скачанные модели не переносятся — программа подскажет, какие папки переложить.
+- The model catalog now also lives in the repository (`catalog.json`): half a minute after startup the app downloads a fresh copy and saves it in the data folder. Links can be fixed and models added without a new app version. Offline — the built-in list.
+- Hugging Face links are pinned to a tested revision; every file has a SHA256. After downloading, the file is checked ("Checking …"); a damaged file is deleted and the next attempt downloads it again.
+- llama.cpp is installed in the tested build (`b12248`, set in the catalog) rather than the newest. If that build has nothing for this graphics card, the latest one is used. llama.cpp archives are checked with SHA256 too (from GitHub). Models... shows the "tested version"; the button reads "Update to b12248" / "Reinstall".
+- Models... → "Change models folder...": choose a folder for models (e.g. on another drive). Already downloaded models are not moved — the app tells you which folders to move.
 
 ## v0.13 — 2026-11-10
 
-Установщик и обновления через интернет (Velopack + GitHub Releases).
+Installer and online updates (Velopack + GitHub Releases).
 
-- Первый публичный выпуск: https://github.com/nieacry/n17YuHelper/releases — `n17YuHelper-win-Setup.exe` ставит программу в `%LocalAppData%\n17YuHelper` без прав администратора, сам доставляет .NET 10 Desktop Runtime, создаёт ярлык в меню «Пуск», включает автозапуск с Windows. Удаление — через «Установленные приложения» (автозапуск убирается).
-- Установленная программа сама проверяет обновления на GitHub: через минуту после запуска и раз в 6 часов, новая версия скачивается в фоне (только разница, если возможно).
-- Settings → General: «Check for updates automatically» и «Install updates automatically (when the app is idle)». Если вторая галочка снята — приходит уведомление, а в меню трея появляется «Restart to update to X».
-- Меню трея → «Check for updates...». После обновления уведомление «n17 YuHelper updated», щелчок по нему открывает список изменений на GitHub.
-- Переносная копия (папка разработки) обновляется по-старому — файлом `n17YuHelper.update.exe`.
+- First public release: https://github.com/nieacry/n17YuHelper/releases — `n17YuHelper-win-Setup.exe` installs the app into `%LocalAppData%\n17YuHelper` without admin rights, installs the .NET 10 Desktop Runtime if needed, adds a Start menu shortcut and turns on start with Windows. Uninstall via Installed apps (start with Windows is removed).
+- The installed app checks GitHub for updates by itself: a minute after startup and every 6 hours; a new version is downloaded in the background (only the difference when possible).
+- Settings → General: "Check for updates automatically" and "Install updates automatically (when the app is idle)". With the second one off you get a notification, and the tray menu shows "Restart to update to X".
+- Tray menu → "Check for updates...". After an update the "n17 YuHelper updated" notification opens the release notes on GitHub when clicked.
+- A portable copy (dev folder) updates the old way — with `n17YuHelper.update.exe`.
 
 ## v0.12 — 2026-11-10
 
-Подготовка к публичному выпуску: данные отдельно от программы.
+Preparing the public release: data separate from the app.
 
-- Если программа установлена установщиком (папка `…\n17YuHelper\current\`), настройки, история, журналы, модели и llama.cpp хранятся на уровень выше — в `%LocalAppData%\n17YuHelper`. Так обновление, которое заменяет папку с программой целиком, ничего не теряет.
-- Переносной режим — как раньше: если рядом с exe лежит `settings.json` (или пустой файл `portable.txt`), всё хранится рядом с exe. Папка разработки работает без изменений.
-- В журнале при запуске видно, где лежат данные: `Data folder: … (portable)`.
-- Для новых пользователей: словарь терминов по умолчанию пустой, действие «Explain» отвечает на языке текста. У существующих настроек всё остаётся как есть.
-- Код открыт: https://github.com/nieacry/n17YuHelper (MIT), список сторонних компонентов — `THIRD-PARTY-NOTICES.md`.
+- When installed by the installer (folder `…\n17YuHelper\current\`), settings, history, logs, models and llama.cpp are stored one level up — in `%LocalAppData%\n17YuHelper`. An update that replaces the app folder entirely loses nothing.
+- Portable mode works as before: if `settings.json` (or an empty `portable.txt`) is next to the exe, everything is stored next to the exe. The dev folder keeps working unchanged.
+- The startup log shows where the data is: `Data folder: … (portable)`.
+- For new users: the glossary is empty by default, and the "Explain" action answers in the language of the text. Existing settings stay as they are.
+- Open source: https://github.com/nieacry/n17YuHelper (MIT); third-party components are listed in `THIRD-PARTY-NOTICES.md`.
 
 ## v0.11.3 — 2026-11-10
 
-- Меню трея → «Open last window»: открывает окно действий таким, каким его закрыли в прошлый раз — с текстом, переводом (с подсветкой правок грамматики), выбранным языком, открытым файлом и на том же месте экрана. Если окно сейчас открыто — просто выводит его вперёд. Помнится до выхода из программы.
+- Tray menu → "Open last window": reopens the action window the way it was closed — with the text, the translation (with grammar highlights), the chosen language, the opened file and in the same place on screen. If the window is open, just brings it to the front. Remembered until the app exits.
 
 ## v0.11.2 — 2026-11-10
 
-- Менеджер моделей: зелёным отмечена одна рекомендуемая модель, красным — только те, что не помещаются в видеопамять (будут очень медленными). Остальные без отметки.
+- Model manager: one recommended model is marked green; only models that do not fit into GPU memory (and would be very slow) are marked red. The rest are unmarked.
 
 ## v0.11.1 — 2026-11-10
 
-- Менеджер моделей: модель, рекомендованная для этого компьютера, отмечена зелёным (полоска слева, рамка, «★ Recommended for your PC»), остальные — красным с причиной: «needs more GPU memory than your 11.7 GB, will be slow», «Gemma 4 12B fits your GPU and translates better» и т.п.
+- Model manager: the model recommended for this PC is marked green (side bar, border, "★ Recommended for your PC"), others red with a reason: "needs more GPU memory than your 11.7 GB, will be slow", "Gemma 4 12B fits your GPU and translates better", etc.
 
 ## v0.11 — 2026-11-10
 
-Word и PowerPoint с оформлением, выбор микрофона, история сохраняется.
+Word and PowerPoint with formatting, microphone choice, persistent history.
 
-- Перевод Word (.docx) и PowerPoint (.pptx) с сохранением оформления: меняется только текст, а стили, шрифты, таблицы, картинки, колонтитулы, сноски и заметки к слайдам остаются как были. Жирное слово или ссылка внутри абзаца остаются выделенными и в переводе (модель получает части абзаца в тегах). Язык текста в документе тоже меняется на язык перевода — Word проверяет орфографию правильно.
-- Save для такого файла сразу предлагает `имя.en.docx` / `имя.en.pptx`; можно выбрать и .txt. Если текст в окне поправили руками, переводится уже он, как обычный текст.
-- Абзацы документа переводятся пачками (до ~1500 символов) за один запрос, перевод каждого абзаца появляется в окне по ходу.
-- Settings → General → Microphone: выбор микрофона для голосового ввода (по умолчанию — микрофон Windows).
-- История сохраняется после перезапуска (`history.json` рядом с exe, последние 300 результатов). Выключается в Settings → General. В окне History — поиск (Ctrl+F), удаление одной записи (Delete), очистка с подтверждением, дата у вчерашних записей. В трее история в памяти не держится — читается, когда нужна.
-- Settings → General → Keep window open: окно действий не закрывается, когда щёлкаешь в другом месте (как 📌, но для каждого окна). Закрыть — Esc или ×.
+- Translating Word (.docx) and PowerPoint (.pptx) keeping the formatting: only the text changes, while styles, fonts, tables, images, headers/footers, footnotes and slide notes stay as they were. A bold word or a link inside a paragraph stays highlighted in the translation (the model gets the paragraph parts in tags). The text language in the document is switched to the target language, so Word spell-checks correctly.
+- Save for such a file offers `name.en.docx` / `name.en.pptx` right away; .txt can be chosen too. If the text in the window was edited by hand, that text is translated as plain text.
+- Document paragraphs are translated in batches (up to ~1500 characters) per request; each translated paragraph appears in the window as it is ready.
+- Settings → General → Microphone: choose the microphone for voice input (default — the Windows microphone).
+- History is kept after restart (`history.json` next to the exe, the last 300 results). Turn it off in Settings → General. The History window has search (Ctrl+F), deleting one entry (Delete), clearing with confirmation and dates for older entries. History is not kept in memory while in the tray — it is read when needed.
+- Settings → General → Keep window open: the action window does not close when you click elsewhere (like 📌, but for every window). Close with Esc or ×.
+
 ## v0.10 — 2026-11-10
 
-Голосовой ввод и перевод файлов.
+Voice input and file translation.
 
-- Голосовой ввод той же моделью, что переводит: Gemma 4 понимает речь, если загружена её «голосовая часть» (mmproj). Models... → «Add voice» докачивает её (12B — 175 МБ, E2B / E4B — 0,55 ГБ); при новой загрузке модели она скачивается сразу. Работает с Gemma 4 E2B, E4B и 12B (26B и 31B речь не понимают).
-- Ctrl+Shift+Win+V — сказать → перевод в окне (кнопка 5 вставит перевод туда, где стоял курсор). Ctrl+Shift+Win+D — диктовка: распознанный текст сразу вставляется в программу, где стоит курсор.
-- Запись: плашка внизу экрана, уровень звука и таймер, фокус не забирает. Закончить — та же клавиша, кнопка ■ или пауза 2 с; Esc — отменить. Длинная речь режется на части до 28 с по паузам. Смешанная речь (русский + английский) распознаётся каждая часть на своём языке.
-- В окне действий кнопка 🎤 (Ctrl+M) — надиктовать в поле, в место курсора. Меню трея → «Dictate...».
-- Для клавиш: источник «Voice» и действие «Text as is»; «Replace selected text» теперь называется «Paste into the app».
-- Если сборка llama.cpp не умеет голосовую часть модели, модель перевода запускается без неё (перевод работает), а голосовой ввод подсказывает обновить llama.cpp.
-- Перевод файлов: меню трея → «Translate file...», перетаскивание файла в окно действий, Ctrl+O / 📂 в окне. Текстовые форматы (.txt, .md, .srt, .csv, .json, .html, .po…, кодировки UTF-8 / UTF-16 / Windows-1251), Word (.docx), PowerPoint (.pptx), RTF, PDF (текстовый слой, сканы распознаются OCR по страницам), картинки.
-- Длинный текст переводится по частям по абзацам (до ~2000 символов), с прогрессом «part 2 of 7» и выводом по ходу; пустые строки и отступы сохраняются. Так же работает и для длинного выделенного текста.
-- «Save» (Ctrl+S) — сохранить перевод рядом с файлом: `имя.en.txt`, у текстовых форматов расширение сохраняется (`фильм.ru.srt`).
-- «Send to» в Проводнике: меню трея → Advanced → Add to Explorer "Send to" menu. Файл, отправленный в запущенную программу, открывается в ней (вторая копия не запускается). Можно и перетащить файл на exe.
-- Кнопка 📌 в окне действий: не закрывать окно при щелчке в другом месте (для файлов включается сама).
-- Перетащенный в окно текст вставляется в поле.
+- Voice input with the same model that translates: Gemma 4 understands speech when its "voice part" (mmproj) is loaded. Models... → "Add voice" downloads it (12B — 175 MB, E2B / E4B — 0.55 GB); new model downloads include it right away. Works with Gemma 4 E2B, E4B and 12B (26B and 31B do not understand speech).
+- Ctrl+Shift+Win+V — speak → translation in the window (button 5 pastes the translation where the cursor was). Ctrl+Shift+Win+D — dictation: the recognized text is typed straight into the app with the cursor.
+- Recording: a bar at the bottom of the screen with the sound level and a timer; it does not take focus. Finish — the same hotkey, the ■ button or a 2 s pause; Esc — cancel. Long speech is cut into pieces of up to 28 s at pauses. Mixed speech (e.g. Russian + English) is recognized with each part in its own language.
+- The 🎤 button in the action window (Ctrl+M) — dictate into the box at the cursor. Tray menu → "Dictate...".
+- Hotkeys: source "Voice" and action "Text as is"; "Replace selected text" is now called "Paste into the app".
+- If the llama.cpp build does not support the model's voice part, the translation model starts without it (translation works) and voice input suggests updating llama.cpp.
+- File translation: tray menu → "Translate file...", drag a file into the action window, Ctrl+O / 📂 in the window. Text formats (.txt, .md, .srt, .csv, .json, .html, .po…, UTF-8 / UTF-16 / Windows-1251 encodings), Word (.docx), PowerPoint (.pptx), RTF, PDF (text layer; scans are recognized page by page with OCR), images.
+- Long text is translated in pieces by paragraphs (up to ~2000 characters) with "part 2 of 7" progress and output as it goes; empty lines and indentation are kept. The same works for long selected text.
+- "Save" (Ctrl+S) — save the translation next to the file: `name.en.txt`; text formats keep their extension (`movie.en.srt`).
+- Explorer "Send to": tray menu → Advanced → Add to Explorer "Send to" menu. A file sent to the running app opens in it (no second instance starts). You can also drag a file onto the exe.
+- The 📌 button in the action window: do not close the window when clicking elsewhere (turns on by itself for files).
+- Text dropped into the window is inserted into the box.
+
 ## v0.9 — 2026-11-10
 
-Перевод поверх оригинала, повтор последней области, QR-коды, озвучка и пиньинь.
+Translation over the original, repeat the last region, QR codes, text-to-speech and pinyin.
 
-- Перевод поверх оригинала: результат показывается в полупрозрачном окне прямо на месте обведённой области (меню трея → «Translate region over the original», или «Then: Show over the region» у любой клавиши). Окно не забирает фокус, тянется мышью, двойной клик — копировать. При наведении — кнопки: ▶ живой режим, копировать, закрыть.
-- Живой режим: окно само следит за областью и, когда текст под ним меняется (субтитры, интерфейс программы), распознаёт и переводит заново. Окно не попадает в снимки экрана, поэтому программа видит под ним оригинал. Частота проверки — `LiveIntervalMs` (1,5 с).
-- Повтор последней области: источник «Last region» — та же область, что в прошлый раз, без рамки. Новая клавиша Ctrl+Shift+Win+A — перевести последнюю область поверх оригинала.
-- QR-коды и штрихкоды: если на обведённой области есть код, в окне действий появляется кнопка «Open link» (или «Copy QR»), содержимое — в строке состояния и в истории.
-- Озвучка голосами Windows: Actions → «Speak text» / «Speak result». Голос выбирается по языку; если голоса нет, подсказывает, где его установить.
-- Пиньинь: Actions → «Pinyin (Chinese)» — для китайского текста или перевода на китайский: строка иероглифов, под ней пиньинь с тонами и короткий перевод.
+- Translation over the original: the result is shown in a semi-transparent window right over the selected region (tray menu → "Translate region over the original", or "Then: Show over the region" for any hotkey). The window does not take focus, can be dragged; double-click copies. On hover — buttons: ▶ live mode, copy, close.
+- Live mode: the window watches the region and, when the text under it changes (subtitles, an app's UI), recognizes and translates it again. The window is excluded from screen captures, so the app sees the original under it. Check interval — `LiveIntervalMs` (1.5 s).
+- Repeat the last region: source "Last region" — the same region as last time, without the frame. New hotkey Ctrl+Shift+Win+A — translate the last region over the original.
+- QR codes and barcodes: if the selected region has a code, the action window shows "Open link" (or "Copy QR"); the content goes to the status line and history.
+- Text-to-speech with Windows voices: Actions → "Speak text" / "Speak result". The voice is chosen by language; if there is none, the app says where to install it.
+- Pinyin: Actions → "Pinyin (Chinese)" — for Chinese text or a translation into Chinese: the characters, pinyin with tones below and a short translation.
 
 ## v0.8 — 2026-11-10
 
-Таблицы и формулы, свои действия, словарь терминов.
+Tables and formulas, custom actions, glossary.
 
-- Распознавание таблиц: в окне действий стрелка ▾ рядом с «Recognize text» → «Table» или «Formula»; в меню трея — «Recognize region to clipboard» → Text / Table / Formula. Таблица копируется сразу в двух видах: для Excel (по ячейкам) и для Word / Google Docs (настоящая таблица). Формула копируется как LaTeX.
-- Для горячих клавиш появились действия «Recognize table» и «Recognize formula».
-- Свои действия: Settings → Actions — имя и что сделать с текстом. В окне действий — кнопка «Actions» и клавиши 6–9 (пока курсор в поле — Ctrl+6…9). Результат выводится внизу по мере генерации, его можно скопировать или заменить им выделенный текст. Своё действие можно назначить на клавишу (Hotkeys → Action → «Action: …», с «Copy result» или «Replace selected text» — без окна). Для начала есть примеры: Make polite, Shorten, Explain, Reply.
-- Словарь терминов: Settings → Translation → Glossary, строки «термин => перевод» («термин => =» — не переводить). В перевод попадают только термины, найденные в тексте, в обе стороны. Для начала: viewport, rig, UV, Maya, Blender.
+- Table recognition: in the action window, the ▾ arrow next to "Recognize text" → "Table" or "Formula"; in the tray menu — "Recognize region to clipboard" → Text / Table / Formula. A table is copied in two forms at once: for Excel (cell by cell) and for Word / Google Docs (a real table). A formula is copied as LaTeX.
+- Hotkeys got the actions "Recognize table" and "Recognize formula".
+- Custom actions: Settings → Actions — a name and what to do with the text. In the action window — the "Actions" button and keys 6–9 (Ctrl+6…9 while the cursor is in the box). The result appears below as it is generated; it can be copied or replace the selected text. A custom action can be bound to a hotkey (Hotkeys → Action → "Action: …", with "Copy result" or "Replace selected text" — no window). Starter examples: Make polite, Shorten, Explain, Reply.
+- Glossary: Settings → Translation → Glossary, lines "term => translation" ("term => =" — keep untranslated). Only terms found in the text are used, in both directions.
 
 ## v0.7 — 2026-11-10
 
-Менеджер моделей и мастер первого запуска, перевод с заменой.
+Model manager and first-run wizard, translate and replace.
 
-- Меню трея → «Models...»: видеокарта и объём её памяти (DXGI — NVIDIA, AMD, Intel; для NVIDIA ещё версия драйвера), свободное место на диске, рекомендуемые модели под эту видеокарту.
-- Скачивание прямо из программы: полоса прогресса, скорость, оставшееся время, отмена, докачка с места обрыва, проверка размера. Удаление моделей, кнопка «Use» — выбрать модель перевода.
-- Каталог: PaddleOCR-VL 1.6; Gemma 4 E2B / E4B / 12B / 26B-A4B / 31B; Qwen3.5 9B. Рекомендация: до 5.5 ГБ — E2B, 6–9 ГБ — E4B, 10–14 ГБ — 12B, 16–22 ГБ — 26B-A4B, 24 ГБ и больше — 31B.
-- llama.cpp ставится и обновляется оттуда же, сборка выбирается по видеокарте: CUDA 13 (драйвер 580+), CUDA 12, Vulkan для AMD и Intel, CPU без видеокарты.
-- При первом запуске, если чего-то не хватает, открывается приветствие с кнопкой «Download recommended».
-- Режим видеопамяти (в «Models...»): Auto — решить по объёму памяти; Keep both — держать обе модели; One at a time — перед загрузкой одной модели выгружать другую (для видеокарт 6–8 ГБ).
-- Новая клавиша Ctrl+Shift+Win+R «Translate and replace»: выделил текст → он заменяется переводом прямо на месте, без окна. Работает и для любой своей клавиши с `Translate` + «Replace selected text».
-- Подсказки об отсутствующей модели теперь ведут в «Models...». `tools\setup-models.cmd` остаётся как запасной способ.
+- Tray menu → "Models...": the graphics card and its memory (DXGI — NVIDIA, AMD, Intel; driver version for NVIDIA), free disk space, recommended models for this card.
+- Downloads right from the app: progress bar, speed, time left, cancel, resume after interruption, size check. Deleting models; "Use" picks the translation model.
+- Catalog: PaddleOCR-VL 1.6; Gemma 4 E2B / E4B / 12B / 26B-A4B / 31B; Qwen3.5 9B. Recommendation: up to 5.5 GB — E2B, 6–9 GB — E4B, 10–14 GB — 12B, 16–22 GB — 26B-A4B, 24 GB and more — 31B.
+- llama.cpp is installed and updated from the same place; the build is chosen by graphics card: CUDA 13 (driver 580+), CUDA 12, Vulkan for AMD and Intel, CPU without a GPU.
+- On first start, if something is missing, a welcome window with "Download recommended" opens.
+- GPU memory mode (in "Models..."): Auto — decide by the amount of memory; Keep both — keep both models loaded; One at a time — unload one model before loading the other (for 6–8 GB cards).
+- New hotkey Ctrl+Shift+Win+R "Translate and replace": select text → it is replaced with the translation in place, no window. Works for any custom hotkey with `Translate` + "Replace selected text".
+- Hints about a missing model now point to "Models...". `tools\setup-models.cmd` stays as a fallback.
 
 ## v0.6.1 — 2026-11-10
 
-- Обновления ставятся сами: как только программа ничем не занята (нет открытых окон и работы), она перезапускается в новой версии и показывает «n17 YuHelper updated».
-- Окно действий: значки на кнопках (Segoe Fluent Icons), подписи над блоками (TEXT / ORIGINAL / TRANSLATION · ENGLISH / CORRECTED), тонкая бегущая полоса цвета акцента под заголовком, пока идёт работа, окно чуть больше.
-- Настройки: значки в навигации.
+- Updates install themselves: as soon as the app is idle (no open windows, no work), it restarts into the new version and shows "n17 YuHelper updated".
+- Action window: icons on buttons (Segoe Fluent Icons), captions above blocks (TEXT / ORIGINAL / TRANSLATION · ENGLISH / CORRECTED), a thin running accent bar under the header while working, a slightly bigger window.
+- Settings: icons in the navigation.
 
 ## v0.6 — 2026-11-10
 
-Новый интерфейс и автовыгрузка моделей.
+New UI and automatic model unloading.
 
-- Оформление в стиле Windows 11: светлая и тёмная тема (по умолчанию — как в Windows), цвет акцента Windows, шрифт Segoe UI Variable, скруглённые углы и тёмный заголовок окон.
-- Окно действий без системной рамки: сверху значок, название и выбор языка в виде «Russian → English ▾», крестик; текст и результат в карточках; кнопки со скруглением и подсказкой клавиши справа (пока курсор в поле ввода, подсказки показывают Ctrl+цифру). Окно перетаскивается за заголовок и растягивается за края.
-- Настройки: навигация слева (Hotkeys, General, Models, Translation), новые кнопки, тёмная тема для полей и списков. В General — выбор темы (System / Light / Dark, применяется после перезапуска).
-- Меню трея, подсказки у курсора, история и рамка выделения — в цветах темы.
-- Пока запущены Maya, Blender, Houdini, ZBrush, 3ds Max, Cinema 4D, Unreal Editor, Substance Painter или Marvelous Designer, модели выгружаются после минуты простоя. Список — в Settings → Models.
-- `tools\setup-models.cmd -Qwen` — скачать вторую модель перевода Qwen3.5 9B; выбрать её можно в Settings → Models.
+- Windows 11 style: light and dark theme (default — as in Windows), Windows accent color, Segoe UI Variable font, rounded corners and dark window title bars.
+- Action window without a system frame: icon, title and language picker like "Russian → English ▾" at the top, a close button; text and result in cards; rounded buttons with a key hint on the right (while the cursor is in the input box, hints show Ctrl+digit). The window is dragged by the header and resized by the edges.
+- Settings: navigation on the left (Hotkeys, General, Models, Translation), new buttons, dark theme for fields and lists. General has the theme choice (System / Light / Dark, applied after restart).
+- Tray menu, cursor hints, history and the region frame use the theme colors.
+- While Maya, Blender, Houdini, ZBrush, 3ds Max, Cinema 4D, Unreal Editor, Substance Painter or Marvelous Designer is running, models are unloaded after a minute of idle time. The list is in Settings → Models.
+- `tools\setup-models.cmd -Qwen` — download the second translation model Qwen3.5 9B; choose it in Settings → Models.
 
 ## v0.5 — 2026-11-10
 
-Окно настроек, история, правка текста в окне действий.
+Settings window, history, editing text in the action window.
 
-- В окне действий исходный текст теперь можно править или набирать заново, а потом переводить и проверять уже исправленный текст. Пока курсор в поле ввода, цифры печатаются, а действия — на Ctrl+1…Ctrl+5 (Ctrl+Enter — перевести). Вне поля работают и простые 1–5.
-- Если текст правили вручную, окно не закрывается само при переходе в другую программу (закрыть — Esc или крестик).
-- Язык текста и язык перевода по умолчанию обновляются по мере набора (пока язык перевода не выбран вручную).
-- Меню трея → «Type text...»: пустое окно, чтобы набрать или вставить текст и перевести / проверить.
-- Меню трея → «Settings...»:
-  - Hotkeys — список клавиш как в ShareX: щёлкнуть поле и нажать комбинацию; источник, действие, что делать после, язык перевода; добавить, удалить, вернуть набор по умолчанию. После Apply у каждой клавиши виден статус (✓ OK / ✗ in use).
-  - General — автозапуск с Windows, действие по клику на иконку, прилипание рамки, лупа, ожидание выделенного текста, списки программ (без выделения / терминалы).
-  - Models — папки моделей и llama-server, выбор модели перевода (из найденных в models\llm), температура, выгрузка через N минут, предзагрузка, увеличение мелких областей, «Free GPU memory», «Download models...».
-  - Translation — язык перевода по умолчанию для каждого языка, сброс запомненных выборов.
-- Меню трея → «History»: последние 50 результатов (распознавание, перевод, грамматика), только в памяти. Двойной клик — скопировать результат.
-- Ручная правка `settings.json` перенесена в меню «Advanced».
-- Обновление без ручного закрытия: если рядом с exe появился `n17YuHelper.update.exe`, программа показывает «Update ready» и пункт «Restart to update» в меню трея — по клику сама перезапускается в новой версии.
+- In the action window the source text can now be edited or typed anew, and the corrected text translated and checked. While the cursor is in the input box, digits are typed and actions are on Ctrl+1…Ctrl+5 (Ctrl+Enter — translate). Outside the box plain 1–5 work too.
+- If the text was edited by hand, the window does not close by itself when switching to another app (close with Esc or ×).
+- The text language and the default target language update as you type (until the target language is chosen manually).
+- Tray menu → "Type text...": an empty window to type or paste text and translate / check it.
+- Tray menu → "Settings...":
+  - Hotkeys — a hotkey list like in ShareX: click the field and press the combination; source, action, what to do after, target language; add, delete, restore defaults. After Apply each hotkey shows its status (✓ OK / ✗ in use).
+  - General — start with Windows, tray icon click action, frame snapping, magnifier, selected-text wait time, app lists (no selection / terminals).
+  - Models — model and llama-server folders, translation model choice (from those found in models\llm), temperature, unload after N minutes, preloading, upscaling small regions, "Free GPU memory", "Download models...".
+  - Translation — default target language for each language, reset remembered choices.
+- Tray menu → "History": the last 50 results (recognition, translation, grammar), in memory only. Double-click copies the result.
+- Manual editing of `settings.json` moved to the "Advanced" menu.
+- Update without closing by hand: if `n17YuHelper.update.exe` appears next to the exe, the app shows "Update ready" and a "Restart to update" tray item — a click restarts it into the new version.
 
 ## v0.4 — 2026-11-10
 
-Проверка грамматики, замена текста, автозапуск.
+Grammar check, text replacement, start with Windows.
 
-- «3  Check grammar» в окне действий и Ctrl+Shift+Win+G: орфография, грамматика и пунктуация для английского, русского, украинского и китайского. Внизу показывается исправленный текст: удалённое — красным зачёркнутым, добавленное — зелёным, ниже пояснения к правкам на английском.
-- «5  Replace» — вставить результат (исправленный текст или перевод) вместо выделенного текста в той программе, где он был выделен. Буфер обмена после этого возвращается как был. Кнопка видна, только если текст был выделен (не область экрана).
-- Клавиши с `"Action": "Grammar"`: `"After": "Replace"` — исправить и сразу заменить без окна; `"After": "Copy"` — скопировать исправленный текст.
-- Меню трея: «Start with Windows» — автозапуск при входе в Windows (для того exe, из которого включено).
-- Модель грузится заранее и для клавиши грамматики.
+- "3  Check grammar" in the action window and Ctrl+Shift+Win+G: spelling, grammar and punctuation for English, Russian, Ukrainian and Chinese. The corrected text is shown below: removed — red strikethrough, added — green, with explanations of the fixes in English.
+- "5  Replace" — paste the result (corrected text or translation) instead of the selected text in the app where it was selected. The clipboard is restored afterwards. The button is visible only if text was selected (not a screen region).
+- Hotkeys with `"Action": "Grammar"`: `"After": "Replace"` — fix and replace right away without a window; `"After": "Copy"` — copy the corrected text.
+- Tray menu: "Start with Windows" — start at Windows sign-in (for the exe it was enabled from).
+- The model is preloaded for the grammar hotkey too.
 
 ## v0.3 — 2026-11-10
 
-Перевод локальной моделью Gemma 4 12B.
+Translation with the local Gemma 4 12B model.
 
-- `tools\setup-models.cmd` теперь скачивает и модель перевода (Gemma 4 12B QAT Q4_0, ~7 ГБ). Уже скачанное пропускается.
-- В окне действий работает «1  Translate»: сверху исходный текст, снизу перевод, который появляется по мере генерации. Язык перевода выбирается в списке рядом с кнопкой; при смене языка текст переводится заново, выбор запоминается.
-- Язык текста определяется сразу по буквам (иероглифы → китайский; і/ї/є/ґ → украинский; кириллица → русский; латиница → английский). По умолчанию: русский/украинский → английский, английский → русский, китайский → русский.
-- Для картинки «Translate» сначала распознаёт текст, потом переводит.
-- Ctrl+Shift+Win+T: выделенный текст или область → окно с переводом. Для клавиш с `"Action": "Translate", "After": "Copy"` перевод сразу копируется в буфер. Язык можно задать в клавише (`"TargetLanguage": "zh"`).
-- Модель перевода начинает грузиться, как только открылось окно действий или нажата клавиша перевода; выгружается через 5 минут простоя вместе с моделью распознавания.
-- «4  Copy» копирует перевод, если он есть, иначе исходный текст или картинку.
-- Окно действий можно растягивать.
-- Если модель не скачана, в окне подсказка запустить `tools\setup-models.cmd`.
-- Журнал модели перевода: `logs\llama-text.log`.
+- `tools\setup-models.cmd` now also downloads the translation model (Gemma 4 12B QAT Q4_0, ~7 GB). Already downloaded files are skipped.
+- "1  Translate" works in the action window: source text on top, translation below, appearing as it is generated. The target language is chosen in the list next to the button; changing it translates again, and the choice is remembered.
+- The text language is detected instantly by letters (CJK → Chinese; і/ї/є/ґ → Ukrainian; other Cyrillic → Russian; Latin → English). Defaults: Russian/Ukrainian → English, English → Russian, Chinese → Russian.
+- For an image, "Translate" first recognizes the text, then translates.
+- Ctrl+Shift+Win+T: selected text or a region → translation window. Hotkeys with `"Action": "Translate", "After": "Copy"` copy the translation right away. The language can be set per hotkey (`"TargetLanguage": "zh"`).
+- The translation model starts loading as soon as the action window opens or the translate hotkey is pressed; it is unloaded after 5 idle minutes together with the OCR model.
+- "4  Copy" copies the translation if there is one, otherwise the source text or image.
+- The action window can be resized.
+- If the model is not downloaded, the window suggests running `tools\setup-models.cmd`.
+- Translation model log: `logs\llama-text.log`.
 
 ## v0.2 — 2026-11-10
 
-Распознавание текста (OCR) локальной моделью PaddleOCR-VL-1.6.
+Text recognition (OCR) with the local PaddleOCR-VL-1.6 model.
 
-- `tools\setup-models.cmd` скачивает llama-server (llama.cpp, CUDA 13 при драйвере 580+, иначе CUDA 12.4) и модель распознавания (~1.8 ГБ).
-- Программа сама запускает llama-server: по нажатию клавиши модель начинает грузиться, пока выделяется область. Через 5 минут простоя модель выгружается (`ModelIdleUnloadMinutes`). Если программа закроется или упадёт, llama-server завершается вместе с ней.
-- Ctrl+Shift+Win+O: область → текст в буфер, подсказка у курсора («Loading OCR model...» → «Recognizing text...» → «Copied N characters»).
-- В окне действий работает «2  Recognize text»: картинка заменяется распознанным текстом, «4  Copy» копирует текст.
-- Мелкие области увеличиваются перед распознаванием, большие режутся на полосы по пустым строкам.
-- Меню трея: состояние модели, «Free GPU memory», «OCR region to clipboard», «Open logs folder».
-- Папки `models` и `runtime\llama-server` находятся автоматически (рядом с exe или выше), пути можно задать в `settings.json`.
-- Журнал llama-server: `logs\llama-ocr.log`.
+- `tools\setup-models.cmd` downloads llama-server (llama.cpp, CUDA 13 with driver 580+, otherwise CUDA 12.4) and the recognition model (~1.8 GB).
+- The app starts llama-server itself: when the hotkey is pressed the model starts loading while the region is being selected. After 5 idle minutes the model is unloaded (`ModelIdleUnloadMinutes`). If the app exits or crashes, llama-server exits with it.
+- Ctrl+Shift+Win+O: region → text to the clipboard, with a hint at the cursor ("Loading OCR model..." → "Recognizing text..." → "Copied N characters").
+- "2  Recognize text" works in the action window: the image is replaced with the recognized text, "4  Copy" copies it.
+- Small regions are upscaled before recognition; large ones are cut into strips along empty rows.
+- Tray menu: model status, "Free GPU memory", "OCR region to clipboard", "Open logs folder".
+- The `models` and `runtime\llama-server` folders are found automatically (next to the exe or above); paths can be set in `settings.json`.
+- llama-server log: `logs\llama-ocr.log`.
 
 ## v0.1.2 — 2026-11-10
 
-- Лупа в рамке выделения больше не показывается (настройка `ShowMagnifier`, по умолчанию выключена; в существующем `settings.json` выключается автоматически).
+- The magnifier is no longer shown in the region frame (setting `ShowMagnifier`, off by default; turned off automatically in an existing `settings.json`).
 
 ## v0.1.1 — 2026-11-10
 
-- Исправлено: рамка выделения не появлялась (ошибка снимка экрана `CopyPixelOperation`). Снимок теперь делается через BitBlt напрямую.
-- Весь интерфейс программы на английском: меню трея, уведомления, окно действий, сообщения. Журнал тоже на английском.
-- Старый `settings.json` обновляется автоматически: стандартные клавиши получают английские названия.
+- Fixed: the region frame did not appear (screen capture error with `CopyPixelOperation`). The snapshot is now taken via BitBlt directly.
+- The whole app UI is in English: tray menu, notifications, action window, messages. The log is in English too.
+- An old `settings.json` is updated automatically: default hotkeys get English names.
 
 ## v0.1 — 2026-11-10
 
-Каркас программы, пока без моделей.
+App skeleton, no models yet.
 
-- Иконка в трее, запускается только одна копия, меню трея.
-- `settings.json` создаётся при первом запуске, «Перечитать настройки» в меню.
-- Глобальные горячие клавиши из настроек (по физической клавише, работают на любой раскладке). Занятые и ошибочные клавиши — в уведомлении и в меню «Горячие клавиши» с ✗. Ctrl+Shift+Win+B запрещена.
-- Умная клавиша: ждёт отпускания клавиш, копирует выделение, возвращает прежний буфер обмена. В терминалах — Ctrl+Insert вместо Ctrl+C; в Maya и Blender выделение не берётся.
-- Рамка выделения как в ShareX: все мониторы, разный масштаб, затемнение, перекрестие, лупа, прилипание к окнам и элементам, стрелки, Esc / ПКМ.
-- Окно действий у курсора: показывает текст или картинку, работает «Копировать» (клавиша 4). Перевод, распознавание и грамматика — заглушки.
-- «Распознать → в буфер» пока копирует картинку области.
-- В простое память отдаётся системе.
-- Журнал `logs\yuhelper.log`.
+- Tray icon, single instance, tray menu.
+- `settings.json` is created on first start; "Reload settings" in the menu.
+- Global hotkeys from the settings (by physical key, work with any keyboard layout). Taken or invalid hotkeys are shown in a notification and in the "Hotkeys" menu with ✗. Ctrl+Shift+Win+B is forbidden.
+- Smart key: waits for the keys to be released, copies the selection, restores the previous clipboard. In terminals — Ctrl+Insert instead of Ctrl+C; in Maya and Blender the selection is not taken.
+- Region frame like in ShareX: all monitors, mixed scaling, dimming, crosshair, magnifier, snapping to windows and controls, arrow keys, Esc / right click.
+- Action window at the cursor: shows text or an image, "Copy" works (key 4). Translation, recognition and grammar are stubs.
+- "Recognize → clipboard" copies the region image for now.
+- Memory is returned to the system when idle.
+- Log `logs\yuhelper.log`.

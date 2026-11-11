@@ -7,12 +7,12 @@ using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 
 namespace N17YuHelper.Files;
 
-/// <summary>Страница PDF: текст (если есть текстовый слой) или картинка скана для распознавания.</summary>
+/// <summary>PDF page: text (if there is a text layer) or the scanned image to recognize.</summary>
 public sealed record PdfPageContent(int Number, string Text, byte[]? ScanImage);
 
 /// <summary>
-/// Чтение файлов для перевода: текстовые форматы, Word (.docx), PowerPoint (.pptx), PDF и картинки.
-/// Без Office и без внешних программ.
+/// Reading files for translation: text formats, Word (.docx), PowerPoint (.pptx), PDF and images.
+/// No Office and no external programs.
 /// </summary>
 public static class DocumentReader
 {
@@ -40,7 +40,7 @@ public static class DocumentReader
         return TextExt.Contains(ext) || ImageExt.Contains(ext) || ext.ToLowerInvariant() is ".pdf" or ".docx" or ".pptx" or ".rtf";
     }
 
-    /// <summary>Какое расширение оставить у переведённого файла (текстовые форматы — своё, остальное — .txt).</summary>
+    /// <summary>Which extension the translated file keeps (text formats — their own, the rest — .txt).</summary>
     public static string ResultExtension(string path)
     {
         var ext = Path.GetExtension(path);
@@ -51,9 +51,9 @@ public static class DocumentReader
         "Documents and images|*.txt;*.md;*.srt;*.vtt;*.ass;*.csv;*.tsv;*.json;*.xml;*.html;*.htm;*.yaml;*.yml;*.ini;*.log;*.po;*.docx;*.pptx;*.rtf;*.pdf;*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|" +
         "All files|*.*";
 
-    // ---------------- текст ----------------
+    // ---------------- text ----------------
 
-    /// <summary>Текстовый файл: UTF-8/UTF-16 (по BOM), иначе UTF-8, а если он не подходит — Windows-1251.</summary>
+    /// <summary>Text file: UTF-8/UTF-16 (by BOM), otherwise UTF-8, and if that fails — Windows-1251.</summary>
     public static string ReadTextFile(string path)
     {
         var bytes = File.ReadAllBytes(path);
@@ -76,7 +76,7 @@ public static class DocumentReader
 
     // ---------------- Word / PowerPoint ----------------
 
-    /// <summary>Текст документа Word: абзацы по строкам, ячейки таблиц через табуляцию.</summary>
+    /// <summary>Word document text: paragraphs as lines, table cells separated by tabs.</summary>
     public static string ReadDocx(string path)
     {
         using var zip = ZipFile.OpenRead(path);
@@ -85,7 +85,7 @@ public static class DocumentReader
         return OfficeXmlText(s, "p", wordprocessing: true);
     }
 
-    /// <summary>Текст презентации: слайды по порядку, между слайдами — пустая строка.</summary>
+    /// <summary>Presentation text: slides in order, an empty line between slides.</summary>
     public static string ReadPptx(string path)
     {
         using var zip = ZipFile.OpenRead(path);
@@ -106,7 +106,7 @@ public static class DocumentReader
         return sb.ToString();
     }
 
-    /// <summary>Общий разбор XML Office: текст из w:t / a:t, абзацы — новая строка.</summary>
+    /// <summary>Common Office XML parsing: text from w:t / a:t, paragraphs — new line.</summary>
     private static string OfficeXmlText(Stream xml, string paragraph, bool wordprocessing)
     {
         var sb = new StringBuilder();
@@ -145,7 +145,7 @@ public static class DocumentReader
                     if (r.LocalName == "t") inText = false;
                     else if (r.LocalName == paragraph)
                     {
-                        // Абзацы внутри ячейки таблицы — через пробел, чтобы строка таблицы не разваливалась.
+                        // Paragraphs inside a table cell are joined with a space so the table row stays intact.
                         if (wordprocessing && cellStarted) sb.Append(' ');
                         else sb.Append('\n');
                     }
@@ -157,15 +157,15 @@ public static class DocumentReader
                     break;
             }
         }
-        // Пустые абзацы Word превращаем максимум в одну пустую строку.
+        // Empty Word paragraphs become at most one empty line.
         return Regex.Replace(sb.ToString().Replace(" \t", "\t").Replace(" \n", "\n"), @"\n{3,}", "\n\n").Trim();
     }
 
     // ---------------- PDF ----------------
 
     /// <summary>
-    /// Страницы PDF. Если на странице почти нет текста (скан), отдаётся самая большая картинка страницы —
-    /// её нужно распознать моделью OCR.
+    /// PDF pages. If a page has almost no text (a scan), its largest image is returned —
+    /// it has to be recognized by the OCR model.
     /// </summary>
     public static List<PdfPageContent> ReadPdf(string path, IProgress<string>? progress = null, CancellationToken ct = default)
     {
@@ -191,7 +191,7 @@ public static class DocumentReader
 
     private static int CountLetters(string s) => s.Count(char.IsLetter);
 
-    /// <summary>Самая крупная картинка страницы в виде PNG или JPEG (то, что может открыть GDI+).</summary>
+    /// <summary>The largest image on the page as PNG or JPEG (whatever GDI+ can open).</summary>
     private static byte[]? LargestImage(UglyToad.PdfPig.Content.Page page)
     {
         byte[]? best = null;
@@ -207,11 +207,11 @@ public static class DocumentReader
                 else
                 {
                     var raw = img.RawMemory.ToArray();
-                    // JPEG (DCTDecode) лежит в PDF как есть.
+                    // JPEG (DCTDecode) is stored in the PDF as is.
                     if (raw.Length > 3 && raw[0] == 0xFF && raw[1] == 0xD8) bytes = raw;
                 }
             }
-            catch { /* необычный формат картинки — пропускаем */ }
+            catch { /* unusual image format — skip */ }
             if (bytes is null) continue;
             best = bytes;
             bestArea = area;

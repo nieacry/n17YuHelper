@@ -1,11 +1,11 @@
 namespace N17YuHelper;
 
-/// <summary>Результат регистрации одной горячей клавиши.</summary>
+/// <summary>Result of registering one hotkey.</summary>
 public sealed record HotkeyStatus(HotkeyEntry Entry, bool Registered, string? Problem);
 
 /// <summary>
-/// Регистрирует глобальные горячие клавиши через RegisterHotKey.
-/// Клавиши привязываются к виртуальному коду, поэтому работают на любой раскладке.
+/// Registers global hotkeys via RegisterHotKey.
+/// Keys are bound to virtual key codes, so they work with any keyboard layout.
 /// </summary>
 public sealed class HotkeyManager : NativeWindow, IDisposable
 {
@@ -79,8 +79,8 @@ public sealed class HotkeyManager : NativeWindow, IDisposable
     }
 
     /// <summary>
-    /// Разбирает строку вида "Ctrl+Shift+Win+Q".
-    /// Модификаторы: Ctrl, Shift, Alt, Win. Клавиша: буква, цифра, F1–F24, Space, PrintScreen и т.п.
+    /// Parses a string like "Ctrl+Shift+Win+Q".
+    /// Modifiers: Ctrl, Shift, Alt, Win. Key: letter, digit, F1–F24, Space, PrintScreen, etc.
     /// </summary>
     public static bool TryParse(string text, out uint modifiers, out uint vk, out string? error)
     {
@@ -133,7 +133,7 @@ public sealed class HotkeyManager : NativeWindow, IDisposable
 
         vk = (uint)key.Value;
 
-        // Ctrl+Shift+Win+B перезапускает видеодрайвер Windows — не даём её назначить.
+        // Ctrl+Shift+Win+B restarts the Windows graphics driver — do not allow binding it.
         if (key == Keys.B && modifiers == (Native.MOD_CONTROL | Native.MOD_SHIFT | Native.MOD_WIN))
         {
             error = "Ctrl+Shift+Win+B is reserved by Windows (graphics driver reset)";

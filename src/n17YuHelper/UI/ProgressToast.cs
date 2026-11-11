@@ -1,7 +1,7 @@
 namespace N17YuHelper.UI;
 
 /// <summary>
-/// Маленькая подсказка у курсора («Recognizing text...», «Copied»), не забирает фокус.
+/// Small hint at the cursor ("Recognizing text...", "Copied"); does not take focus.
 /// </summary>
 internal sealed class ProgressToast : Form
 {
@@ -39,7 +39,7 @@ internal sealed class ProgressToast : Form
         _closeTimer.Tick += (_, _) => { _closeTimer.Stop(); Close(); };
         _label.Paint += (_, e) =>
         {
-            // Точка цвета акцента слева от текста.
+            // Accent-colored dot to the left of the text.
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             int d = (int)(7 * DeviceDpi / 96f);
             using var b = new SolidBrush(Theme.Accent);
@@ -83,7 +83,7 @@ internal sealed class ProgressToast : Form
         _label.Text = text;
     }
 
-    /// <summary>Показывает текст и закрывается через заданное время.</summary>
+    /// <summary>Shows the text and closes after the given time.</summary>
     public void CloseAfter(string text, int ms)
     {
         if (IsDisposed) return;

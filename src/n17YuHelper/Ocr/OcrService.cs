@@ -8,7 +8,7 @@ using N17YuHelper.Llm;
 
 namespace N17YuHelper.Ocr;
 
-/// <summary>Что распознавать: обычный текст, таблицу или формулу.</summary>
+/// <summary>What to recognize: plain text, a table or a formula.</summary>
 public enum OcrMode
 {
     Text,
@@ -17,8 +17,8 @@ public enum OcrMode
 }
 
 /// <summary>
-/// Распознавание текста на картинке через PaddleOCR-VL в llama-server.
-/// Мелкие области увеличиваются, большие режутся на полосы по пустым строкам.
+/// Text recognition in an image with PaddleOCR-VL in llama-server.
+/// Small regions are upscaled, large ones are cut into strips along empty rows.
 /// </summary>
 public sealed class OcrService(LlamaServer server, Func<OcrSettings> settings)
 {
@@ -35,7 +35,7 @@ public sealed class OcrService(LlamaServer server, Func<OcrSettings> settings)
 
         string what = mode switch { OcrMode.Table => "table", OcrMode.Formula => "formula", _ => "text" };
         progress?.Report($"Recognizing {what}...");
-        // Таблицу и формулу не режем на полосы — модель должна видеть их целиком.
+        // Tables and formulas are not cut into strips — the model has to see them whole.
         var tiles = mode == OcrMode.Text ? PrepareTiles(image, s) : [PrepareSingle(image, s)];
         var sb = new StringBuilder();
         try
@@ -95,7 +95,7 @@ public sealed class OcrService(LlamaServer server, Func<OcrSettings> settings)
                             ["type"] = "image_url",
                             ["image_url"] = new JsonObject { ["url"] = dataUrl },
                         },
-                        // Модель обучена на фиксированных подсказках: «OCR:», «Table Recognition:», «Formula Recognition:».
+                        // The model is trained on fixed prompts: "OCR:", "Table Recognition:", "Formula Recognition:".
                         new JsonObject
                         {
                             ["type"] = "text",
@@ -115,9 +115,9 @@ public sealed class OcrService(LlamaServer server, Func<OcrSettings> settings)
         return json?["choices"]?[0]?["message"]?["content"]?.GetValue<string>() ?? "";
     }
 
-    // ---------------- Подготовка картинки ----------------
+    // ---------------- Image preparation ----------------
 
-    /// <summary>Одна картинка целиком (мелкая — увеличивается, крупная — уменьшается моделью сама).</summary>
+    /// <summary>One whole image (small — upscaled, large — downscaled by the model itself).</summary>
     private static Bitmap PrepareSingle(Bitmap source, OcrSettings s)
     {
         if (!s.UpscaleSmallImages) return source;
@@ -133,7 +133,7 @@ public sealed class OcrService(LlamaServer server, Func<OcrSettings> settings)
         Bitmap img = source;
         int maxPixels = Math.Max(200_000, s.MaxPixelsPerTile);
 
-        // Мелкий интерфейсный шрифт модель читает лучше, если область увеличить.
+        // The model reads small UI fonts better when the region is upscaled.
         if (s.UpscaleSmallImages)
         {
             int longSide = Math.Max(img.Width, img.Height);
@@ -148,7 +148,7 @@ public sealed class OcrService(LlamaServer server, Func<OcrSettings> settings)
         long area = (long)img.Width * img.Height;
         if (area <= maxPixels) return [img];
 
-        // Большая область: режем на горизонтальные полосы по самым «пустым» строкам.
+        // Large region: cut into horizontal strips along the "emptiest" rows.
         int stripHeight = Math.Max(64, maxPixels / img.Width);
         var rowNoise = RowNoise(img);
         var tiles = new List<Bitmap>();
@@ -196,7 +196,7 @@ public sealed class OcrService(LlamaServer server, Func<OcrSettings> settings)
         return dst;
     }
 
-    /// <summary>Разброс яркости в каждой строке: чем меньше, тем вероятнее строка между строками текста.</summary>
+    /// <summary>Brightness spread in each row: the smaller it is, the likelier the row lies between text lines.</summary>
     private static unsafe double[] RowNoise(Bitmap img)
     {
         var result = new double[img.Height + 1];

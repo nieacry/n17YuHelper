@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 namespace N17YuHelper.Ocr;
 
 /// <summary>
-/// Таблицы и формулы из PaddleOCR-VL. Таблица приходит в формате OTSL:
-/// &lt;fcel&gt; — ячейка с текстом, &lt;ecel&gt; — пустая, &lt;lcel&gt;/&lt;ucel&gt;/&lt;xcel&gt; — объединённые, &lt;nl&gt; — новая строка.
+/// Tables and formulas from PaddleOCR-VL. A table comes in OTSL format:
+/// &lt;fcel&gt; — cell with text, &lt;ecel&gt; — empty, &lt;lcel&gt;/&lt;ucel&gt;/&lt;xcel&gt; — merged, &lt;nl&gt; — new row.
 /// </summary>
 public static partial class TableFormat
 {
@@ -20,7 +20,7 @@ public static partial class TableFormat
         {
             var row = new List<string>();
             var parts = CellTag().Split(line);
-            // Split с группой: [до, тег, текст, тег, текст...]
+            // Split with a group: [before, tag, text, tag, text...]
             for (int i = 1; i + 1 < parts.Length + 1; i += 2)
             {
                 string tag = parts[i];
@@ -29,14 +29,14 @@ public static partial class TableFormat
             }
             if (row.Count > 0) rows.Add(row);
         }
-        // Если модель вернула не OTSL, а обычный текст — по строке на ряд.
+        // If the model returned plain text instead of OTSL — one row per line.
         if (rows.Count == 0)
             foreach (var line in otsl.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                 rows.Add([line.Trim()]);
         return rows;
     }
 
-    /// <summary>Строки, разделённые табуляцией: так таблица вставляется в Excel по ячейкам.</summary>
+    /// <summary>Tab-separated lines: this is how a table pastes into Excel cell by cell.</summary>
     public static string ToTsv(List<List<string>> rows) =>
         string.Join("\r\n", rows.Select(r => string.Join("\t", r.Select(c => c.Replace('\t', ' ').Replace("\r", " ").Replace("\n", " ")))));
 
@@ -59,7 +59,7 @@ public static partial class TableFormat
         return sb.Append("</table>").ToString();
     }
 
-    /// <summary>HTML в формате буфера обмена Windows (CF_HTML) — Word и Google Docs вставят настоящую таблицу.</summary>
+    /// <summary>HTML in the Windows clipboard format (CF_HTML) — Word and Google Docs paste a real table.</summary>
     public static string ToClipboardHtml(string htmlFragment)
     {
         const string header = "Version:0.9\r\nStartHTML:{0:D10}\r\nEndHTML:{1:D10}\r\nStartFragment:{2:D10}\r\nEndFragment:{3:D10}\r\n";
@@ -73,7 +73,7 @@ public static partial class TableFormat
         return string.Format(header, startHtml, endHtml, startFrag, endFrag) + pre + htmlFragment + post;
     }
 
-    /// <summary>Таблица в буфер: текст с табуляциями (Excel) и HTML (Word).</summary>
+    /// <summary>Table to the clipboard: tab-separated text (Excel) and HTML (Word).</summary>
     public static DataObject ToClipboard(string tsv)
     {
         var data = new DataObject();
@@ -82,7 +82,7 @@ public static partial class TableFormat
         return data;
     }
 
-    /// <summary>Убирает обёртки \[ \], $$ и т.п. — остаётся чистый LaTeX.</summary>
+    /// <summary>Removes \[ \], $$ and similar wrappers — leaves clean LaTeX.</summary>
     public static string CleanLatex(string s)
     {
         s = s.Trim();

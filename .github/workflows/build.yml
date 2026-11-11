@@ -1,4 +1,4 @@
-# Проверка: проект собирается без предупреждений (каждый push и pull request).
+# Check that the project builds without warnings (every push and pull request).
 name: Build
 
 on:

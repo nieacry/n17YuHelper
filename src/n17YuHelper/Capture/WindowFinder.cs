@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 namespace N17YuHelper.Capture;
 
 /// <summary>
-/// Собирает прямоугольники видимых окон и их элементов (дочерних окон)
-/// для «прилипания» рамки. Порядок: сверху вниз по Z-порядку,
-/// внутри окна — сначала мелкие элементы, потом само окно.
+/// Collects rectangles of visible windows and their controls (child windows)
+/// for frame snapping. Order: top to bottom in Z-order,
+/// inside a window — small controls first, then the window itself.
 /// </summary>
 internal static class WindowFinder
 {
@@ -51,11 +51,11 @@ internal static class WindowFinder
         Native.GetWindowThreadProcessId(hwnd, out var pid);
         if (pid == ownPid) return false;
 
-        // Скрытые окна UWP / окна на других виртуальных рабочих столах.
+        // Hidden UWP windows / windows on other virtual desktops.
         if (Native.DwmGetWindowAttribute(hwnd, Native.DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0)
             return false;
 
-        // Границы без невидимой тени Windows 10/11.
+        // Bounds without the invisible Windows 10/11 shadow.
         if (Native.DwmGetWindowAttribute(hwnd, Native.DWMWA_EXTENDED_FRAME_BOUNDS, out Native.RECT r, Marshal.SizeOf<Native.RECT>()) != 0)
         {
             if (!Native.GetWindowRect(hwnd, out r)) return false;

@@ -8,20 +8,20 @@ using N17YuHelper.Translate;
 
 namespace N17YuHelper.UI;
 
-/// <summary>Что пришло на вход: выделенный текст или картинка области.</summary>
+/// <summary>What came in: selected text or a region image.</summary>
 public sealed class CapturedInput : IDisposable
 {
     public string? Text { get; init; }
     public Bitmap? Image { get; init; }
-    /// <summary>Окно, где был выделен текст (для замены). Null для области экрана и буфера.</summary>
+    /// <summary>Window where the text was selected (for replacing). Null for a screen region and the clipboard.</summary>
     public SourceWindow? Source { get; init; }
-    /// <summary>Где на экране была область (для окна поверх и повтора).</summary>
+    /// <summary>Where the region was on the screen (for the overlay and repeating).</summary>
     public Rectangle? Region { get; init; }
     public bool IsText => Text is not null;
     public void Dispose() => Image?.Dispose();
 }
 
-/// <summary>Что было в окне действий, когда его закрыли (для «Open last window»).</summary>
+/// <summary>What was in the action window when it was closed (for "Open last window").</summary>
 public sealed class WindowSnapshot : IDisposable
 {
     public string? Text { get; init; }
@@ -44,40 +44,40 @@ public sealed class WindowSnapshot : IDisposable
     public void Dispose() => Image?.Dispose();
 }
 
-/// <summary>Функция распознавания: картинка → текст.</summary>
+/// <summary>Recognition function: image → text.</summary>
 public delegate Task<string> OcrFunc(Bitmap image, IProgress<string> progress, CancellationToken ct, OcrMode mode);
 
-/// <summary>Сервисы, которые нужны окну действий.</summary>
+/// <summary>Services the action window needs.</summary>
 public sealed class ActionServices
 {
     public required OcrFunc Ocr { get; init; }
     public required TranslationService Translation { get; init; }
     public required GrammarService Grammar { get; init; }
     public required PromptService Prompts { get; init; }
-    /// <summary>Свои действия из настроек (кнопки 6–9).</summary>
+    /// <summary>Custom actions from the settings (buttons 6–9).</summary>
     public required Func<IReadOnlyList<CustomAction>> CustomActions { get; init; }
-    /// <summary>Вставить текст вместо выделенного в исходном окне.</summary>
+    /// <summary>Paste text instead of the selection in the source window.</summary>
     public required Func<SourceWindow, string, Task> Replace { get; init; }
-    /// <summary>Записать результат в историю.</summary>
+    /// <summary>Write the result to history.</summary>
     public required Action<string, string, string> AddHistory { get; init; }
-    /// <summary>Вызывается при открытии окна: начать загрузку текстовой модели заранее.</summary>
+    /// <summary>Called when the window opens: start loading the text model in advance.</summary>
     public Action? PreloadText { get; init; }
-    /// <summary>Записать голос и распознать (null — отменили или ничего не сказали).</summary>
+    /// <summary>Record voice and recognize it (null — cancelled or nothing was said).</summary>
     public Func<IProgress<string>, Task<string?>>? Dictate { get; init; }
-    /// <summary>Настройка «Keep window open»: новое окно сразу закреплено.</summary>
+    /// <summary>"Keep window open" setting: a new window is pinned right away.</summary>
     public Func<bool>? KeepOpen { get; init; }
-    /// <summary>Перевести документ Word / PowerPoint с оформлением: путь, с какого, на какой, абзацы по ходу → файл.</summary>
+    /// <summary>Translate a Word / PowerPoint document keeping formatting: path, from, to, paragraphs as they go → file.</summary>
     public Func<string, Language, Language, Action<string>, IProgress<string>, CancellationToken, Task<byte[]>>? TranslateDocument { get; init; }
-    /// <summary>Закончить идущую запись голоса (true — отменить).</summary>
+    /// <summary>Finish the voice recording in progress (true — cancel).</summary>
     public Action<bool>? StopDictation { get; init; }
 }
 
 /// <summary>
-/// Окно действий рядом с курсором (без системной рамки, в стиле Windows 11).
-/// Исходный текст можно править и набирать вручную.
-/// 1 — перевести, 2 — распознать текст на картинке, 3 — проверить грамматику,
-/// 4 — копировать результат, 5 — заменить выделенный текст. Пока курсор в поле ввода —
-/// те же действия на Ctrl+1…Ctrl+5. Esc — закрыть.
+/// Action window next to the cursor (no system frame, Windows 11 style).
+/// The source text can be edited or typed by hand.
+/// 1 — translate, 2 — recognize text in the image, 3 — check grammar,
+/// 4 — copy the result, 5 — replace the selected text. While the cursor is in the input box —
+/// the same actions on Ctrl+1…Ctrl+5. Esc — close.
 /// </summary>
 internal sealed class ActionForm : Form
 {
@@ -104,7 +104,7 @@ internal sealed class ActionForm : Form
     private readonly ContextMenuStrip _actionsMenu;
     private bool _isTable;
     private readonly ModernButton _btnQr;
-    private Language? _resultLang;      // язык результата (для озвучки)              // в поле — таблица (копируется и для Excel, и для Word)
+    private Language? _resultLang;      // result language (for text-to-speech)              // the box holds a table (copied for both Excel and Word)
     private readonly ModernButton _btnGrammar;
     private readonly ModernButton _btnCopy;
     private readonly ModernButton _btnReplace;
@@ -112,17 +112,17 @@ internal sealed class ActionForm : Form
     private readonly ModernButton _btnMic;
     private readonly ModernButton _btnPin;
 
-    private Bitmap? _image;             // картинка (снимок области или открытый файл)
-    private string? _filePath;          // открытый файл (для «Save»)
-    private bool _pinned;               // не закрывать при потере фокуса
+    private Bitmap? _image;             // image (region snapshot or an opened file)
+    private string? _filePath;          // opened file (for "Save")
+    private bool _pinned;               // do not close on focus loss
     private bool _dictating;
-    private string? _loadedText;        // текст файла сразу после открытия (если не правили — переводим документ с оформлением)
-    private byte[]? _translatedDoc;     // переведённый .docx / .pptx
+    private string? _loadedText;        // file text right after opening (if not edited — translate the document with formatting)
+    private byte[]? _translatedDoc;     // translated .docx / .pptx
 
-    private string? _resultText;        // перевод или исправленный текст
-    private string? _resultForSource;   // для какого исходного текста получен результат
+    private string? _resultText;        // translation or corrected text
+    private string? _resultForSource;   // which source text the result belongs to
     private Language? _sourceLang;
-    private Language? _target;          // выбранный язык перевода
+    private Language? _target;          // selected target language
     private RichTextBox? _resultBox;
     private CancellationTokenSource? _translateCts;
     private bool _busyFlag;
@@ -133,7 +133,7 @@ internal sealed class ActionForm : Form
     }
     private bool _userPickedTarget;
     private bool _retranslatePending;
-    private bool _hasText;              // исходный текст есть (выделен, распознан или набирается)
+    private bool _hasText;              // there is source text (selected, recognized or being typed)
 
     public ActionForm(CapturedInput input, ActionServices services, string? note = null)
     {
@@ -151,11 +151,11 @@ internal sealed class ActionForm : Form
         Font = Theme.UiFont(9.5f);
         ClientSize = new Size(680, 440);
         MinimumSize = new Size(500, 300);
-        Padding = new Padding(5);   // полоса по краю — за неё окно можно тянуть
+        Padding = new Padding(5);   // edge strip — the window can be resized by it
         DoubleBuffered = true;
         Theme.ApplyWindow(this);
 
-        // ---------- заголовок: значок, название, язык перевода, закрыть
+        // ---------- header: icon, title, target language, close
         _header = new Panel { Dock = DockStyle.Top, Height = 44, Padding = new Padding(12, 6, 8, 4), BackColor = Theme.Bg };
         var badge = new BadgeLabel { Dock = DockStyle.Left, Width = 30 };
         var title = new Label
@@ -191,7 +191,7 @@ internal sealed class ActionForm : Form
         foreach (Control c in new Control[] { _header, badge, title })
             c.MouseDown += DragWindow;
 
-        // ---------- панель кнопок и строка состояния
+        // ---------- button bar and status line
         var toolbar = new FlowLayoutPanel
         {
             Dock = DockStyle.Bottom,
@@ -216,7 +216,7 @@ internal sealed class ActionForm : Form
         _btnSave = MakeButton("Save", "Ctrl+S", "\uE74E", ButtonKind.Accent, SaveResult);
         _btnSave.Visible = false;
 
-        // Свои действия: меню и клавиши 6–9.
+        // Custom actions: menu and keys 6–9.
         _btnActions = MakeButton("Actions", "6-9", "\uE70F", ButtonKind.Normal, () => { });
         _actionsMenu = new ContextMenuStrip();
         var actions = services.CustomActions();
@@ -256,7 +256,7 @@ internal sealed class ActionForm : Form
             AutoEllipsis = true,
         };
 
-        // ---------- содержимое
+        // ---------- content
         _contentHost = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12, 2, 12, 4), BackColor = Theme.Bg };
 
         _sourceBox = new TextBox
@@ -269,7 +269,7 @@ internal sealed class ActionForm : Form
             BackColor = Theme.Surface,
             ForeColor = Theme.Text,
             Font = Theme.UiFont(10.5f),
-            MaxLength = 0, // без ограничения 32767 символов: файлы бывают большими
+            MaxLength = 0, // no 32767-character limit: files can be large
         };
         _sourceBox.TextChanged += OnSourceEdited;
         _sourceBox.GotFocus += (_, _) => UpdateHints();
@@ -317,7 +317,7 @@ internal sealed class ActionForm : Form
 
     private readonly ToolTip _tips = new();
 
-    /// <summary>Не закрывать окно, когда оно теряет фокус (для работы с файлами и диктовки).</summary>
+    /// <summary>Do not close the window when it loses focus (for working with files and dictation).</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool Pinned
     {
@@ -340,7 +340,7 @@ internal sealed class ActionForm : Form
     private string SourceText => _sourceBox.Text;
     private Language CurrentTarget => _target ?? _services.Translation.DefaultTarget(_sourceLang ?? Languages.English);
 
-    // ---------------- Исходный текст и язык ----------------
+    // ---------------- Source text and language ----------------
 
     private void SetSourceText(string text)
     {
@@ -355,7 +355,7 @@ internal sealed class ActionForm : Form
     {
         if (!_hasText) return;
         UpdateLanguage();
-        // Текст изменили — прежний результат к нему больше не относится.
+        // The text changed — the previous result no longer applies to it.
         if (_resultText is not null && _resultForSource != SourceText) _btnReplace.Enabled = false;
     }
 
@@ -385,7 +385,7 @@ internal sealed class ActionForm : Form
         UpdateChip();
         if (!byUser || _resultBox is null || _resultForSource is null) return;
 
-        // Перевод уже показан или идёт — переводим заново на выбранный язык.
+        // A translation is shown or in progress — translate again into the chosen language.
         if (_busy)
         {
             _retranslatePending = true;
@@ -397,7 +397,7 @@ internal sealed class ActionForm : Form
         }
     }
 
-    /// <summary>Пока курсор в поле ввода, подсказки показывают Ctrl+цифру.</summary>
+    /// <summary>While the cursor is in the input box, hints show Ctrl+digit.</summary>
     private void UpdateHints()
     {
         string p = _sourceBox.Focused ? "Ctrl+" : "";
@@ -409,7 +409,7 @@ internal sealed class ActionForm : Form
         _btnActions.Hint = p + "6-9";
     }
 
-    // ---------------- Отображение ----------------
+    // ---------------- Display ----------------
 
     private void ShowImage()
     {
@@ -439,7 +439,7 @@ internal sealed class ActionForm : Form
         _resultCaption = null;
     }
 
-    /// <summary>Сверху исходный текст (можно править), снизу результат.</summary>
+    /// <summary>Source text on top (editable), result below.</summary>
     private void ShowSourceAndResult()
     {
         if (_resultBox is not null) return;
@@ -478,7 +478,7 @@ internal sealed class ActionForm : Form
         {
             if (split.Height > 120) split.SplitterDistance = (int)(split.Height * 0.42);
         }
-        catch (InvalidOperationException) { /* окно слишком маленькое */ }
+        catch (InvalidOperationException) { /* the window is too small */ }
     }
 
     private void ResetResultBox()
@@ -498,9 +498,9 @@ internal sealed class ActionForm : Form
         return false;
     }
 
-    // ---------------- Действия ----------------
+    // ---------------- Actions ----------------
 
-    /// <summary>Распознаёт текст на картинке. Возвращает true, если текст получен.</summary>
+    /// <summary>Recognizes text in the image. Returns true if text was obtained.</summary>
     public async Task<bool> RunOcrAsync(OcrMode mode = OcrMode.Text)
     {
         if (_hasText) return true;
@@ -553,7 +553,7 @@ internal sealed class ActionForm : Form
         }
     }
 
-    /// <summary>Переводит текст (при необходимости сначала распознаёт картинку).</summary>
+    /// <summary>Translates the text (recognizing the image first if needed).</summary>
     public async Task TranslateAsync(Language? forcedTarget = null)
     {
         if (_busy) return;
@@ -586,7 +586,7 @@ internal sealed class ActionForm : Form
             _translatedDoc = null;
             if (IsOfficeOriginal && _services.TranslateDocument is { } translateDoc)
             {
-                // Word / PowerPoint, текст не правили: переводим сам документ с оформлением.
+                // Word / PowerPoint, text not edited: translate the document itself with formatting.
                 var paragraphs = new List<string>();
                 var doc = await translateDoc(_filePath!, source, target,
                     para => { paragraphs.Add(para); if (!box.IsDisposed) box.AppendText((paragraphs.Count > 1 ? "\r\n" : "") + Normalize(para)); },
@@ -599,7 +599,7 @@ internal sealed class ActionForm : Form
             {
                 result = await _services.Translation.TranslateAsync(
                     text, source, target,
-                    // Ответ приходит в UI-потоке (await без ConfigureAwait), поэтому дописываем сразу.
+                    // The reply arrives on the UI thread (await without ConfigureAwait), so append right away.
                     onDelta: piece => { if (!box.IsDisposed) box.AppendText(Normalize(piece)); },
                     progress, ct);
             }
@@ -618,7 +618,7 @@ internal sealed class ActionForm : Form
         }
         catch (OperationCanceledException)
         {
-            // перевод отменён: закрыли окно или выбрали другой язык
+            // translation cancelled: the window was closed or another language was chosen
         }
         catch (Exception ex)
         {
@@ -637,7 +637,7 @@ internal sealed class ActionForm : Form
         }
     }
 
-    /// <summary>Своё действие: результат выводится внизу по мере генерации.</summary>
+    /// <summary>Custom action: the result is shown below as it is generated.</summary>
     public async Task RunCustomAsync(CustomAction action, string? textOverride = null)
     {
         if (_busy) return;
@@ -685,7 +685,7 @@ internal sealed class ActionForm : Form
         }
     }
 
-    // ---------------- Озвучка, пиньинь, QR ----------------
+    // ---------------- Text-to-speech, pinyin, QR ----------------
 
     private void SpeakText(string text, Language? lang)
     {
@@ -695,7 +695,7 @@ internal sealed class ActionForm : Form
         SetStatus(error ?? $"Speaking ({lang.Name})...");
     }
 
-    /// <summary>Пиньинь для китайского текста: результата перевода (если он китайский) или исходного.</summary>
+    /// <summary>Pinyin for Chinese text: of the translation (if it is Chinese) or of the source.</summary>
     private async Task ShowPinyinAsync()
     {
         string? chinese = _resultLang == Languages.Chinese && _resultText is not null ? _resultText
@@ -741,7 +741,7 @@ internal sealed class ActionForm : Form
 
     private string ReplaceHint => _btnReplace.Visible ? " · Replace puts it into the original app" : "";
 
-    /// <summary>Проверяет орфографию и грамматику и показывает правки.</summary>
+    /// <summary>Checks spelling and grammar and shows the corrections.</summary>
     public async Task CheckGrammarAsync()
     {
         if (_busy) return;
@@ -801,7 +801,7 @@ internal sealed class ActionForm : Form
         }
     }
 
-    /// <summary>Исправленный текст с подсветкой: удалённое — красным зачёркнутым, добавленное — зелёным. Ниже — пояснения.</summary>
+    /// <summary>Corrected text with highlighting: removed — red strikethrough, added — green. Explanations below.</summary>
     private static void RenderGrammar(RichTextBox box, GrammarResult result)
     {
         box.Clear();
@@ -854,7 +854,7 @@ internal sealed class ActionForm : Form
         box.ScrollToCaret();
     }
 
-    /// <summary>Вставляет результат вместо выделенного текста в исходной программе.</summary>
+    /// <summary>Pastes the result instead of the selected text in the source app.</summary>
     private async Task ReplaceAsync()
     {
         if (_resultText is null || _input.Source is null || !_btnReplace.Enabled || !_btnReplace.Visible) return;
@@ -897,12 +897,12 @@ internal sealed class ActionForm : Form
     private void BeginInvokeSafe(Action a)
     {
         if (IsDisposed || !IsHandleCreated) return;
-        try { BeginInvoke(a); } catch (InvalidOperationException) { /* окно закрывается */ }
+        try { BeginInvoke(a); } catch (InvalidOperationException) { /* the window is closing */ }
     }
 
-    // ---------------- Последнее окно ----------------
+    // ---------------- Last window ----------------
 
-    /// <summary>Снимок окна при закрытии (null — в окне ничего не было).</summary>
+    /// <summary>Window snapshot on close (null — the window was empty).</summary>
     public WindowSnapshot? Snapshot { get; private set; }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -920,7 +920,7 @@ internal sealed class ActionForm : Form
         string? rtf = null;
         if (_resultText is not null && _resultBox is { IsDisposed: false } box)
         {
-            try { rtf = box.Rtf; } catch { /* без оформления */ }
+            try { rtf = box.Rtf; } catch { /* without formatting */ }
         }
         return new WindowSnapshot
         {
@@ -944,7 +944,7 @@ internal sealed class ActionForm : Form
         };
     }
 
-    /// <summary>Возвращает в окно то, что было в нём при закрытии.</summary>
+    /// <summary>Restores what was in the window when it was closed.</summary>
     public void Restore(WindowSnapshot s)
     {
         _filePath = s.FilePath;
@@ -983,7 +983,7 @@ internal sealed class ActionForm : Form
         SetStatus(s.Status.Length > 0 ? s.Status : "Last window restored");
     }
 
-    // ---------------- Файлы: открыть, перетащить, сохранить ----------------
+    // ---------------- Files: open, drag and drop, save ----------------
 
     private void EnableDrop(Control root)
     {
@@ -1032,14 +1032,14 @@ internal sealed class ActionForm : Form
             Filter = DocumentReader.OpenFilter,
             InitialDirectory = _filePath is not null ? Path.GetDirectoryName(_filePath) : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
         };
-        Pinned = true; // окно диалога забирает фокус — наше окно не должно закрыться
+        Pinned = true; // the dialog takes focus — our window must not close
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
         _ = LoadFileAsync(dlg.FileName, translate: true);
     }
 
     /// <summary>
-    /// Открывает файл: картинку показывает как снимок, из документа берёт текст
-    /// (сканы в PDF распознаёт). translate — сразу перевести.
+    /// Opens a file: shows an image as a snapshot, takes the text from a document
+    /// (recognizes PDF scans). translate — translate right away.
     /// </summary>
     public async Task LoadFileAsync(string path, bool translate)
     {
@@ -1176,7 +1176,7 @@ internal sealed class ActionForm : Form
         if (translate) await TranslateAsync();
     }
 
-    /// <summary>Для документа окно побольше (в пределах экрана).</summary>
+    /// <summary>A bigger window for documents (within the screen).</summary>
     private void GrowForDocument()
     {
         var area = Screen.FromControl(this).WorkingArea;
@@ -1193,7 +1193,7 @@ internal sealed class ActionForm : Form
         return rtb.Text;
     }
 
-    /// <summary>Сохраняет результат (перевод) в файл рядом с исходным.</summary>
+    /// <summary>Saves the result (translation) to a file next to the source.</summary>
     private void SaveResult()
     {
         if (_resultText is null)
@@ -1226,7 +1226,7 @@ internal sealed class ActionForm : Form
             }
             else
             {
-                // Блокнот, Excel и редакторы субтитров надёжнее понимают UTF-8 с BOM.
+                // Notepad, Excel and subtitle editors understand UTF-8 with BOM more reliably.
                 bool bom = outExt is ".txt" or ".srt" or ".vtt" or ".csv" or ".tsv" or ".ass" or ".ssa" or ".log";
                 File.WriteAllText(dlg.FileName, Normalize(_resultText), new System.Text.UTF8Encoding(bom));
             }
@@ -1239,13 +1239,13 @@ internal sealed class ActionForm : Form
         }
     }
 
-    /// <summary>Открыт документ Word / PowerPoint и его текст не правили.</summary>
+    /// <summary>A Word / PowerPoint document is open and its text was not edited.</summary>
     private bool IsOfficeOriginal =>
         _filePath is not null && OfficeTranslator.IsSupported(_filePath) && _loadedText is not null && SourceText == _loadedText;
 
-    // ---------------- Голос ----------------
+    // ---------------- Voice ----------------
 
-    /// <summary>Диктовка в поле текста. Повторный вызов — закончить запись.</summary>
+    /// <summary>Dictation into the text box. Calling again stops the recording.</summary>
     public async Task DictateAsync()
     {
         if (_services.Dictate is null) return;
@@ -1288,7 +1288,7 @@ internal sealed class ActionForm : Form
         }
     }
 
-    /// <summary>Вставляет текст в поле (на место курсора). Если показана картинка — переключает на текст.</summary>
+    /// <summary>Inserts text into the box (at the cursor). If an image is shown, switches to text.</summary>
     private void InsertText(string text)
     {
         if (!_hasText)
@@ -1307,7 +1307,7 @@ internal sealed class ActionForm : Form
         _sourceBox.Focus();
     }
 
-    // ---------------- Окно без рамки: тень, перетаскивание, изменение размера ----------------
+    // ---------------- Borderless window: shadow, dragging, resizing ----------------
 
     private const int WM_NCHITTEST = 0x0084;
     private const int WM_NCLBUTTONDOWN = 0x00A1;
@@ -1363,14 +1363,14 @@ internal sealed class ActionForm : Form
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        // Тонкая рамка (на Windows 11 её дополняет рамка DWM со скруглением).
+        // Thin border (on Windows 11 the DWM rounded border complements it).
         using var pen = new Pen(Theme.Border);
         e.Graphics.DrawRectangle(pen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
     }
 
-    // ---------------- Окно ----------------
+    // ---------------- Window ----------------
 
-    /// <summary>Показывает окно рядом с курсором, не выходя за пределы монитора.</summary>
+    /// <summary>Shows the window next to the cursor without leaving the monitor.</summary>
     public void ShowNearCursor()
     {
         var cursor = Cursor.Position;
@@ -1381,7 +1381,7 @@ internal sealed class ActionForm : Form
         ShowAndFocus();
     }
 
-    /// <summary>Показывает окно там, где оно было (если это место ещё на экране).</summary>
+    /// <summary>Shows the window where it was (if that place is still on screen).</summary>
     public void ShowAt(Rectangle bounds)
     {
         if (bounds.Width < 200 || !Screen.AllScreens.Any(sc => sc.WorkingArea.IntersectsWith(bounds)))
@@ -1419,7 +1419,7 @@ internal sealed class ActionForm : Form
             return true;
         }
 
-        // Пока курсор в поле ввода, цифры печатаются; действия — на Ctrl+цифру.
+        // While the cursor is in the input box, digits are typed; actions are on Ctrl+digit.
         var key = keyData & Keys.KeyCode;
         bool ctrl = (keyData & Keys.Modifiers) == Keys.Control;
         bool plain = (keyData & Keys.Modifiers) == Keys.None;
@@ -1469,7 +1469,7 @@ internal sealed class ActionForm : Form
     protected override void OnDeactivate(EventArgs e)
     {
         base.OnDeactivate(e);
-        // Как всплывающее меню: ушёл фокус — окно закрылось. Если текст правили или открыт выбор языка — не закрываем.
+        // Like a popup menu: focus lost — the window closes. Not if the text was edited or the language list is open.
         if (IsHandleCreated && !IsDisposed && !Disposing && Visible && !_sourceBox.Modified && !_pinned && !_dictating)
             BeginInvoke(() => { if (!IsDisposed && !ContainsFocus && !_langMenu.Visible && !_ocrMenu.Visible && !_actionsMenu.Visible && Form.ActiveForm != this) Close(); });
     }
@@ -1477,7 +1477,7 @@ internal sealed class ActionForm : Form
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         base.OnFormClosed(e);
-        _cts.Cancel(); // без Dispose: токен может ещё проверяться в незавершённом запросе
+        _cts.Cancel(); // no Dispose: the token may still be checked by an unfinished request
         Speech.Stop();
         _langMenu.Dispose();
         _ocrMenu.Dispose();
@@ -1488,7 +1488,7 @@ internal sealed class ActionForm : Form
         _input.Dispose();
     }
 
-    /// <summary>Круглый значок «Yu» цвета акцента.</summary>
+    /// <summary>Round "Yu" badge in the accent color.</summary>
     private sealed class BadgeLabel : Control
     {
         public BadgeLabel()

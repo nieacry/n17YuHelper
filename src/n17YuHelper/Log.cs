@@ -1,6 +1,6 @@
 namespace N17YuHelper;
 
-/// <summary>Простой журнал в logs\yuhelper.log (в папке данных, см. AppPaths).</summary>
+/// <summary>Simple log in logs\yuhelper.log (in the data folder, see AppPaths).</summary>
 internal static class Log
 {
     private static readonly object Sync = new();
@@ -33,7 +33,7 @@ internal static class Log
         }
         catch
         {
-            // Журнал не должен ронять программу.
+            // Logging must never crash the app.
         }
     }
 }

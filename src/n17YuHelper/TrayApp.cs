@@ -11,7 +11,7 @@ using N17YuHelper.Voice;
 
 namespace N17YuHelper;
 
-/// <summary>Иконка в трее, горячие клавиши, модели и запуск цепочек действий.</summary>
+/// <summary>Tray icon, hotkeys, models and running action chains.</summary>
 internal sealed class TrayApp : ApplicationContext
 {
     private readonly NotifyIcon _tray;
@@ -46,7 +46,7 @@ internal sealed class TrayApp : ApplicationContext
     private readonly Updater _updater;
     private readonly ToolStripMenuItem _updateItem;
     private readonly OnlineUpdater _online;
-    /// <summary>Что сделать по щелчку на всплывающем уведомлении.</summary>
+    /// <summary>What to do when the notification balloon is clicked.</summary>
     private Action? _balloonClick;
     private bool _busy;
 
@@ -63,7 +63,7 @@ internal sealed class TrayApp : ApplicationContext
         _ocrServer = new LlamaServer("ocr", _settings.Ocr.Port, BuildOcrLaunch);
         _ocr = new OcrService(_ocrServer, () => _settings.Ocr);
         _textServer = new LlamaServer("text", _settings.TextModel.Port, BuildTextLaunch);
-        // Режим «по очереди»: перед загрузкой одной модели выгружаем другую.
+        // One-at-a-time mode: unload one model before loading the other.
         _ocrServer.BeforeStart = () => { if (OneModelAtATime) _textServer.Stop("one model at a time"); };
         _textServer.BeforeStart = () => { if (OneModelAtATime) _ocrServer.Stop("one model at a time"); };
         _translation = new TranslationService(_textServer, () => _settings);
@@ -133,7 +133,7 @@ internal sealed class TrayApp : ApplicationContext
         _trimTimer = new System.Windows.Forms.Timer { Interval = 5000 };
         _trimTimer.Tick += (_, _) => { _trimTimer.Stop(); TrimMemory(); };
 
-        // Раз в 30 секунд проверяем, не пора ли выгрузить модели.
+        // Every 30 seconds check whether it is time to unload the models.
         _idleTimer = new System.Windows.Forms.Timer { Interval = 30_000 };
         _idleTimer.Tick += (_, _) => UnloadIdleModels();
         _idleTimer.Start();
@@ -151,21 +151,21 @@ internal sealed class TrayApp : ApplicationContext
             Notify("n17 YuHelper updated", $"Now running version {VersionText}. Click to see what's new.", ToolTipIcon.Info,
                 () => OpenUrl(OnlineUpdater.ReleaseUrl(VersionText)));
 
-        // Свежий каталог моделей (ссылки, проверенная сборка llama.cpp) — через полминуты, в фоне.
+        // Fresh model catalog (links, tested llama.cpp build) — half a minute later, in the background.
         _ = Task.Delay(TimeSpan.FromSeconds(30)).ContinueWith(_ => Models.CatalogUpdater.RefreshAsync()).Unwrap();
         Log.Info($"Model catalog: {Models.ModelCatalog.Source}, llama.cpp {Models.ModelCatalog.LlamaCppTag}");
 
-        // Видеокарту определяем заранее, в фоне (нужно для режима видеопамяти и мастера).
+        // Detect the graphics card early, in the background (needed for the GPU memory mode and the wizard).
         Task.Run(() => GpuInfo.Detect());
-        // Мастер моделей — после запуска цикла сообщений.
+        // Model wizard — after the message loop starts.
         SynchronizationContextHolder.Post(MaybeShowWelcome);
-        // Файл из командной строки («Отправить» в Проводнике или перетаскивание на exe).
+        // File from the command line (Explorer "Send to" or drag and drop onto the exe).
         if (Program.StartupFile is { } file) SynchronizationContextHolder.Post(() => OpenFileWindow(file));
 
         ScheduleTrim();
     }
 
-    // ---------------- Модели ----------------
+    // ---------------- Models ----------------
 
     private ServerLaunch BuildOcrLaunch(int port)
     {
@@ -219,8 +219,8 @@ internal sealed class TrayApp : ApplicationContext
         if (!string.IsNullOrWhiteSpace(s.ExtraArgs))
             args.AddRange(s.ExtraArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
-        // Аудио-часть модели — для голосового ввода. Если старая сборка llama.cpp её не знает —
-        // сервер запустится без неё, перевод продолжит работать.
+        // The model's audio part — for voice input. If an old llama.cpp build does not support it,
+        // the server starts without it and translation keeps working.
         if (AudioEncoderFile() is { } mmproj)
         {
             var withAudio = new List<string>(args) { "--mmproj", mmproj };
@@ -229,7 +229,7 @@ internal sealed class TrayApp : ApplicationContext
         return new ServerLaunch(exe, args, logFile, [model]);
     }
 
-    /// <summary>Файл аудио-части модели перевода (mmproj), если голосовой ввод включён и файл скачан.</summary>
+    /// <summary>Audio part (mmproj) of the translation model, if voice input is on and the file is downloaded.</summary>
     private string? AudioEncoderFile()
     {
         if (!_settings.Voice.Enabled) return null;
@@ -240,7 +240,7 @@ internal sealed class TrayApp : ApplicationContext
         return File.Exists(path) ? path : null;
     }
 
-    /// <summary>Хватает ли видеопамяти держать обе модели сразу.</summary>
+    /// <summary>Whether there is enough GPU memory to keep both models loaded.</summary>
     private bool OneModelAtATime
     {
         get
@@ -251,20 +251,20 @@ internal sealed class TrayApp : ApplicationContext
                 case "OneAtATime": return true;
             }
             var gpu = GpuInfo.Detect();
-            if (gpu.Vendor == GpuVendor.None) return false; // работают на процессоре и в обычной памяти
+            if (gpu.Vendor == GpuVendor.None) return false; // they run on the CPU and in system memory
             double need = ModelCatalog.Ocr.VramGb
                           + ModelCatalog.VramNeeded(_settings.ModelsDir, _settings.TextModel.ModelFile, 8)
                           + (AudioEncoderFile() is { } a ? new FileInfo(a).Length / 1024.0 / 1024 / 1024 * 1.3 : 0)
-                          + 1.0; // Windows и другие программы
+                          + 1.0; // Windows and other apps
             return gpu.VramGb < need;
         }
     }
 
-    /// <summary>Начинает загрузку модели заранее (пока пользователь выделяет область или выбирает действие).</summary>
+    /// <summary>Starts loading a model in advance (while the user selects a region or picks an action).</summary>
     private void Preload(LlamaServer server)
     {
         if (server.State is ServerState.Ready or ServerState.Starting) return;
-        // В режиме «по очереди» не выгоняем модель, которая уже работает.
+        // In one-at-a-time mode do not evict a model that is busy.
         var other = server == _ocrServer ? _textServer : _ocrServer;
         if (OneModelAtATime && other.State is ServerState.Ready or ServerState.Starting) return;
         server.EnsureReadyAsync().ContinueWith(t =>
@@ -293,7 +293,7 @@ internal sealed class TrayApp : ApplicationContext
         UnloadForHeavyApps();
     }
 
-    /// <summary>Пока работает Maya, Blender и т.п. — модели не держим в видеопамяти дольше минуты простоя.</summary>
+    /// <summary>While Maya, Blender, etc. are running, models are not kept in GPU memory for more than a minute of idle time.</summary>
     private void UnloadForHeavyApps()
     {
         if (_busy || _settings.UnloadWhileRunning.Count == 0) return;
@@ -312,7 +312,7 @@ internal sealed class TrayApp : ApplicationContext
                 {
                     if (running is null && names.Contains(p.ProcessName)) running = p.ProcessName;
                 }
-                catch { /* процесс уже завершился */ }
+                catch { /* the process has already exited */ }
             }
         }
         if (running is null) return;
@@ -334,7 +334,7 @@ internal sealed class TrayApp : ApplicationContext
         _ => "not loaded",
     };
 
-    // ---------------- Меню ----------------
+    // ---------------- Menu ----------------
 
     private ContextMenuStrip BuildMenu()
     {
@@ -425,7 +425,7 @@ internal sealed class TrayApp : ApplicationContext
         return statuses;
     }
 
-    // ---------------- Окна: настройки, история, ввод текста ----------------
+    // ---------------- Windows: settings, history, text input ----------------
 
     private int _hotkeySuspend;
 
@@ -469,7 +469,7 @@ internal sealed class TrayApp : ApplicationContext
 
         if (modelsChanged)
         {
-            // Новые пути или модель применятся при следующей загрузке.
+            // New paths or model apply on the next load.
             _ocrServer.Stop("model settings changed");
             _textServer.Stop("model settings changed");
         }
@@ -488,11 +488,11 @@ internal sealed class TrayApp : ApplicationContext
         return ApplyHotkeys(showProblems: false);
     }
 
-    // ---------------- Обновление ----------------
+    // ---------------- Updates ----------------
 
     private bool _updatePending;
 
-    /// <summary>Новая версия рядом: ставим сразу, как только программа ничем не занята.</summary>
+    /// <summary>A new version is next to the exe: install it as soon as the app is idle.</summary>
     private void OnUpdateReady()
     {
         _updatePending = true;
@@ -502,7 +502,7 @@ internal sealed class TrayApp : ApplicationContext
 
     private bool IsIdle => !_busy && _recording is null && _actionForm is null && _settingsForm is null && _historyForm is null && _modelsForm is null;
 
-    /// <summary>Новая версия скачана из интернета.</summary>
+    /// <summary>A new version was downloaded from the internet.</summary>
     private void OnOnlineUpdateDownloaded(string version)
     {
         _updateItem.Text = $"Restart to update to {version}";
@@ -519,7 +519,7 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
-    /// <summary>Пункт меню «Check for updates...».</summary>
+    /// <summary>Menu item "Check for updates...".</summary>
     private async Task CheckForUpdatesManuallyAsync()
     {
         if (!_online.Supported)
@@ -555,7 +555,7 @@ internal sealed class TrayApp : ApplicationContext
     private void ApplyUpdate()
     {
         if (_busy) return;
-        // Скачанное из интернета — через Velopack; иначе — локальный файл n17YuHelper.update.exe.
+        // Downloaded from the internet — via Velopack; otherwise — the local file n17YuHelper.update.exe.
         bool started = _online.Ready is not null ? _online.StartApplyAndRestart() : Updater.StartApplyAndRestart();
         if (started) ExitThread();
         else Notify("Update failed", "See logs\\yuhelper.log.", ToolTipIcon.Error);
@@ -605,7 +605,7 @@ internal sealed class TrayApp : ApplicationContext
         Native.ForceForeground(_modelsForm.Handle);
     }
 
-    /// <summary>Первый запуск или не хватает файлов — показать мастер моделей (один раз).</summary>
+    /// <summary>First start or missing files — show the model wizard (once).</summary>
     private void MaybeShowWelcome()
     {
         bool missing = Downloader.InstalledRuntime(_settings.RuntimeDir) is null
@@ -630,7 +630,7 @@ internal sealed class TrayApp : ApplicationContext
         Native.ForceForeground(_historyForm.Handle);
     }
 
-    /// <summary>Пустое окно действий: набрать или вставить текст и перевести / проверить.</summary>
+    /// <summary>Empty action window: type or paste text and translate / check it.</summary>
     private void ShowTypeWindow()
     {
         _actionForm?.Close();
@@ -663,7 +663,7 @@ internal sealed class TrayApp : ApplicationContext
     {
         if (!await TextReplacer.ReplaceAsync(source, text, _settings))
         {
-            try { Clipboard.SetText(text); } catch { /* буфер занят */ }
+            try { Clipboard.SetText(text); } catch { /* clipboard is busy */ }
             Notify("Could not paste into the window", "The text is in the clipboard. Paste it with Ctrl+V.", ToolTipIcon.Warning);
         }
     }
@@ -672,7 +672,7 @@ internal sealed class TrayApp : ApplicationContext
     {
         _settings = AppSettings.Load(out var error);
         ApplyHotkeys(showProblems: true);
-        // Новые пути и параметры модели применятся при следующей загрузке.
+        // New paths and model parameters apply on the next load.
         _ocrServer.Stop("settings reloaded");
         _textServer.Stop("settings reloaded");
         if (error is not null)
@@ -681,11 +681,11 @@ internal sealed class TrayApp : ApplicationContext
             Notify("Settings reloaded", $"Active hotkeys: {_settings.Hotkeys.Count(h => h.Enabled)}", ToolTipIcon.Info);
     }
 
-    // ---------------- Цепочка действий ----------------
+    // ---------------- Action chain ----------------
 
     private async Task RunAsync(HotkeyEntry entry)
     {
-        // Идёт запись голоса: любая наша клавиша (обычно та же) заканчивает её.
+        // Voice recording in progress: any of our hotkeys (usually the same one) stops it.
         if (_recording is { IsRecording: true } rec)
         {
             rec.Finish();
@@ -695,12 +695,12 @@ internal sealed class TrayApp : ApplicationContext
         _busy = true;
         _trimTimer.Stop();
         CapturedInput? input = null;
-        // Окно, где был выделен текст, — до того как появятся наши окна.
+        // The window where the text was selected — before our windows appear.
         var source = TextReplacer.CaptureForeground();
 
         try
         {
-            // Выходим из обработчика WM_HOTKEY, чтобы модальная рамка не открывалась внутри него.
+            // Leave the WM_HOTKEY handler so that the modal frame does not open inside it.
             await Task.Yield();
             Log.Info($"Run: {entry.Name} [{entry.Source} -> {entry.Action} -> {entry.After}]");
             _actionForm?.Close();
@@ -775,7 +775,7 @@ internal sealed class TrayApp : ApplicationContext
                     ShowActionForm(input, null);
                     break;
             }
-            input = null; // теперь им владеет окно или он уже освобождён
+            input = null; // now it is owned by the window or already disposed
         }
         catch (Exception ex)
         {
@@ -842,7 +842,7 @@ internal sealed class TrayApp : ApplicationContext
 
     private CapturedInput? CaptureRegion(HotkeyEntry entry)
     {
-        // Почти всё, что делается с картинкой, начинается с распознавания — грузим модель заранее.
+        // Almost everything done with an image starts with recognition — preload the model.
         PreloadOcr();
 
         var result = RegionCaptureForm.Run(_settings);
@@ -851,7 +851,7 @@ internal sealed class TrayApp : ApplicationContext
         return new CapturedInput { Image = result.Image, Region = result.ScreenRect };
     }
 
-    // ---------------- Последняя область и окно поверх ----------------
+    // ---------------- Last region and overlay window ----------------
 
     private readonly List<OverlayForm> _overlays = [];
 
@@ -872,7 +872,7 @@ internal sealed class TrayApp : ApplicationContext
         return null;
     }
 
-    /// <summary>Та же область, что в прошлый раз, без рамки. Если области ещё не было — обычная рамка.</summary>
+    /// <summary>The same region as last time, without the frame. If there was none yet — the normal frame.</summary>
     private CapturedInput? CaptureLastRegion(HotkeyEntry entry)
     {
         if (LastRegion() is not { } r) return CaptureRegion(entry);
@@ -880,7 +880,7 @@ internal sealed class TrayApp : ApplicationContext
         return new CapturedInput { Image = RegionCaptureForm.CaptureRect(r), Region = r };
     }
 
-    /// <summary>Что сделать с распознанным текстом для этого действия (для окна поверх).</summary>
+    /// <summary>What to do with the recognized text for this action (for the overlay window).</summary>
     private Func<string, CancellationToken, Task<string>> ProcessorFor(HotkeyEntry entry)
     {
         switch (entry.Action)
@@ -903,7 +903,7 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
-    /// <summary>Результат — поверх обведённой области. Живой режим: при изменении области — заново.</summary>
+    /// <summary>Result over the selected region. Live mode: redo when the region changes.</summary>
     private async Task OverlayAsync(CapturedInput input, HotkeyEntry entry)
     {
         var mode = OcrModeOf(entry.Action);
@@ -961,7 +961,7 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
-    /// <summary>Быстрый «отпечаток» картинки, чтобы понять, изменилась ли область.</summary>
+    /// <summary>A quick image "fingerprint" to tell whether the region changed.</summary>
     private static unsafe ulong ImageSignature(Bitmap bmp)
     {
         var data = bmp.LockBits(new Rectangle(Point.Empty, bmp.Size), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
@@ -973,7 +973,7 @@ internal sealed class TrayApp : ApplicationContext
                 byte* row = (byte*)data.Scan0 + (long)y * data.Stride;
                 for (int x = 0; x < bmp.Width * 3; x += 6)
                 {
-                    h ^= (ulong)(row[x] >> 3); // мелкий шум не считаем изменением
+                    h ^= (ulong)(row[x] >> 3); // small noise does not count as a change
                     h *= 1099511628211UL;
                 }
             }
@@ -988,7 +988,7 @@ internal sealed class TrayApp : ApplicationContext
     private static OcrMode OcrModeOf(HotkeyAction a) =>
         a switch { HotkeyAction.OcrTable => OcrMode.Table, HotkeyAction.OcrFormula => OcrMode.Formula, _ => OcrMode.Text };
 
-    /// <summary>Распознать и сразу скопировать, с подсказкой у курсора.</summary>
+    /// <summary>Recognize and copy right away, with a hint at the cursor.</summary>
     private async Task OcrToClipboardAsync(CapturedInput input, OcrMode mode = OcrMode.Text)
     {
         if (input.IsText)
@@ -1035,7 +1035,7 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
-    /// <summary>Своё действие без окна: сразу заменить выделенный текст или скопировать результат.</summary>
+    /// <summary>Custom action without a window: replace the selected text or copy the result right away.</summary>
     private async Task CustomDirectAsync(CapturedInput input, CustomAction action, AfterAction after)
     {
         var toast = new ProgressToast("Preparing...");
@@ -1074,7 +1074,7 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
-    /// <summary>Перевести без окна: сразу заменить выделенный текст или скопировать перевод.</summary>
+    /// <summary>Translate without a window: replace the selected text or copy the translation right away.</summary>
     private async Task TranslateDirectAsync(CapturedInput input, Language? forcedTarget, AfterAction after)
     {
         var toast = new ProgressToast("Preparing...");
@@ -1121,7 +1121,7 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
-    /// <summary>Проверить грамматику без окна: сразу заменить выделенный текст или скопировать исправленный.</summary>
+    /// <summary>Check grammar without a window: replace the selected text or copy the corrected one right away.</summary>
     private async Task GrammarDirectAsync(CapturedInput input, AfterAction after)
     {
         var toast = new ProgressToast("Preparing...");
@@ -1175,11 +1175,11 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
-    // ---------------- Голос ----------------
+    // ---------------- Voice ----------------
 
     /// <summary>
-    /// Запись голоса и распознавание. progress == null — подсказки у курсора (горячая клавиша),
-    /// иначе — в строке состояния окна действий. Null — отменили или ничего не сказано.
+    /// Voice recording and recognition. progress == null — hints at the cursor (hotkey),
+    /// otherwise — in the action window status line. Null — cancelled or nothing was said.
     /// </summary>
     private async Task<string?> DictateAsync(IProgress<string>? progress)
     {
@@ -1195,7 +1195,7 @@ internal sealed class TrayApp : ApplicationContext
             return null;
         }
 
-        Preload(_textServer); // модель грузится, пока человек говорит
+        Preload(_textServer); // the model loads while the person is speaking
         HotkeyEntry? key = _settings.Hotkeys.FirstOrDefault(h => h.Enabled && h.Source == InputSource.Voice);
         string hint = progress is null && key is not null
             ? $"{key.Keys} again or pause to finish · Esc cancel"
@@ -1225,7 +1225,7 @@ internal sealed class TrayApp : ApplicationContext
                 recorder.Dispose();
             }
         }
-        if (pcm is null) return null; // отменили
+        if (pcm is null) return null; // cancelled
 
         ProgressToast? toast = null;
         if (progress is null)
@@ -1263,7 +1263,7 @@ internal sealed class TrayApp : ApplicationContext
         return null;
     }
 
-    /// <summary>Текст без обработки: вставить в программу (диктовка) или скопировать.</summary>
+    /// <summary>Text without processing: type it into the app (dictation) or copy it.</summary>
     private async Task AsIsDirectAsync(CapturedInput input, AfterAction after)
     {
         string? text = input.Text;
@@ -1292,9 +1292,9 @@ internal sealed class TrayApp : ApplicationContext
         ShowToast($"Copied: {preview}", 1800);
     }
 
-    // ---------------- Файлы ----------------
+    // ---------------- Files ----------------
 
-    /// <summary>Окно перевода файла: выбрать файл в диалоге.</summary>
+    /// <summary>File translation window: pick a file in the dialog.</summary>
     private void ShowOpenFileWindow()
     {
         using var dlg = new OpenFileDialog { Title = "Translate a file", Filter = Files.DocumentReader.OpenFilter };
@@ -1302,7 +1302,7 @@ internal sealed class TrayApp : ApplicationContext
         OpenFileWindow(dlg.FileName);
     }
 
-    /// <summary>Открывает файл в окне действий и сразу переводит.</summary>
+    /// <summary>Opens a file in the action window and translates it right away.</summary>
     private void OpenFileWindow(string path)
     {
         Log.Info("Open file: " + path);
@@ -1312,7 +1312,7 @@ internal sealed class TrayApp : ApplicationContext
         _ = form.LoadFileAsync(path, translate: true);
     }
 
-    /// <summary>Ярлык в меню Проводника «Отправить»: правый клик по файлу → Send to → n17 YuHelper.</summary>
+    /// <summary>Shortcut in the Explorer "Send to" menu: right-click a file → Send to → n17 YuHelper.</summary>
     private void AddToSendTo()
     {
         try
@@ -1335,7 +1335,7 @@ internal sealed class TrayApp : ApplicationContext
         }
     }
 
-    /// <summary>История в памяти: очень длинные тексты (файлы) обрезаем.</summary>
+    /// <summary>In-memory history: very long texts (files) are truncated.</summary>
     private void AddHistory(string kind, string source, string result)
     {
         const int max = 20_000;
@@ -1356,7 +1356,7 @@ internal sealed class TrayApp : ApplicationContext
         form.FormClosed += (_, _) =>
         {
             if (ReferenceEquals(_actionForm, form)) _actionForm = null;
-            // Запоминаем, что было в окне (меню трея → Open last window).
+            // Remember what was in the window (tray menu → Open last window).
             if (form.Snapshot is { } snap)
             {
                 _lastWindow?.Dispose();
@@ -1378,7 +1378,7 @@ internal sealed class TrayApp : ApplicationContext
 
     private WindowSnapshot? _lastWindow;
 
-    /// <summary>Открывает окно действий таким, каким его закрыли в прошлый раз.</summary>
+    /// <summary>Opens the action window the way it was closed last time.</summary>
     private void OpenLastWindow()
     {
         if (_lastWindow is not { } snap)
@@ -1388,7 +1388,7 @@ internal sealed class TrayApp : ApplicationContext
         }
         if (_actionForm is { IsDisposed: false } open)
         {
-            // Окно и так открыто — просто показываем его.
+            // The window is open anyway — just show it.
             Native.ForceForeground(open.Handle);
             return;
         }
@@ -1398,7 +1398,7 @@ internal sealed class TrayApp : ApplicationContext
         ShowActionForm(input, null, snap);
     }
 
-    // ---------------- Служебное ----------------
+    // ---------------- Housekeeping ----------------
 
     private void Notify(string title, string text, ToolTipIcon icon, Action? onClick = null)
     {
@@ -1428,7 +1428,7 @@ internal sealed class TrayApp : ApplicationContext
         _trimTimer.Start();
     }
 
-    /// <summary>Отдаёт лишнюю память системе, пока программа просто висит в трее.</summary>
+    /// <summary>Returns spare memory to the system while the app just sits in the tray.</summary>
     private void TrimMemory()
     {
         if (_busy || _actionForm is not null || _settingsForm is not null || _historyForm is not null || _modelsForm is not null) return;

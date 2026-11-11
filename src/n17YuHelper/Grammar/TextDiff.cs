@@ -12,8 +12,8 @@ public enum DiffKind
 public sealed record DiffPart(DiffKind Kind, string Text);
 
 /// <summary>
-/// Разница между исходным и исправленным текстом по словам (LCS).
-/// Для китайского каждый иероглиф — отдельный «токен».
+/// Word-level difference between the source and corrected text (LCS).
+/// For Chinese every character is a separate "token".
 /// </summary>
 public static partial class TextDiff
 {
@@ -27,7 +27,7 @@ public static partial class TextDiff
         var a = Tokenize(original);
         var b = Tokenize(corrected);
 
-        // Слишком длинный текст — без подсветки, просто «было/стало».
+        // Text too long — no highlighting, just "before/after".
         if ((long)a.Count * b.Count > MaxCells)
             return [new DiffPart(DiffKind.Deleted, original), new DiffPart(DiffKind.Inserted, corrected)];
 

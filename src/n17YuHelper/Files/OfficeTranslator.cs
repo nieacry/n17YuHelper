@@ -5,14 +5,14 @@ using System.Xml.Linq;
 
 namespace N17YuHelper.Files;
 
-/// <summary>Переводит пачку абзацев (теги &lt;1&gt;…&lt;/1&gt; нужно сохранить). Возвращает столько же строк.</summary>
+/// <summary>Translates a batch of paragraphs (tags &lt;1&gt;…&lt;/1&gt; must be kept). Returns the same number of lines.</summary>
 public delegate Task<IReadOnlyList<string>> BatchTranslator(IReadOnlyList<string> items, CancellationToken ct);
 
 /// <summary>
-/// Перевод документа Word (.docx) или презентации (.pptx) с сохранением оформления:
-/// меняется только текст внутри абзацев, стили, таблицы, картинки и разметка остаются как были.
-/// Части абзаца с разным оформлением (жирное слово, ссылка) передаются модели в тегах &lt;1&gt;…&lt;/1&gt;,
-/// чтобы перевод попал в те же места. Если модель теги потеряла — весь абзац получает оформление первой части.
+/// Translates a Word document (.docx) or presentation (.pptx) keeping the formatting:
+/// only the text inside paragraphs changes; styles, tables, images and markup stay as they were.
+/// Parts of a paragraph with different formatting (a bold word, a link) are sent to the model in tags &lt;1&gt;…&lt;/1&gt;
+/// so the translation lands in the same places. If the model loses the tags, the whole paragraph gets the first part's formatting.
 /// </summary>
 public static class OfficeTranslator
 {
@@ -32,14 +32,14 @@ public static class OfficeTranslator
     private sealed class Paragraph
     {
         public required List<Segment> Segments { get; init; }
-        public string Source { get; set; } = "";   // текст для модели (с тегами, если частей несколько)
-        public string Plain { get; set; } = "";    // текст без тегов
+        public string Source { get; set; } = "";   // text for the model (with tags if there are several parts)
+        public string Plain { get; set; } = "";    // text without tags
         public bool Tagged { get; set; }
     }
 
     /// <summary>
-    /// Переводит документ. onParagraph получает переведённый текст каждого абзаца по порядку (для показа).
-    /// Возвращает готовый файл.
+    /// Translates the document. onParagraph receives each translated paragraph in order (for display).
+    /// Returns the finished file.
     /// </summary>
     public static async Task<byte[]> TranslateAsync(string path, string targetLangTag, BatchTranslator translate,
         Action<string>? onParagraph, IProgress<string>? progress, CancellationToken ct, int batchChars = 1500, int batchItems = 40)
@@ -50,7 +50,7 @@ public static class OfficeTranslator
 
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Update, leaveOpen: true))
         {
-            // Части с текстом: документ, колонтитулы, сноски / слайды и заметки.
+            // Parts with text: document, headers/footers, footnotes / slides and notes.
             var parts = zip.Entries
                 .Where(e => word
                     ? Regex.IsMatch(e.FullName, @"^word/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$")
@@ -69,7 +69,7 @@ public static class OfficeTranslator
             }
             if (paragraphs.Count == 0) throw new InvalidDataException("No text found in the document.");
 
-            // Пачки абзацев для модели.
+            // Batches of paragraphs for the model.
             var batches = new List<List<Paragraph>>();
             var cur = new List<Paragraph>();
             int chars = 0;
@@ -96,7 +96,7 @@ public static class OfficeTranslator
                 for (int i = 0; i < batch.Count; i++)
                 {
                     string t = i < result.Count ? result[i] : "";
-                    if (string.IsNullOrWhiteSpace(t)) t = batch[i].Source; // модель промолчала — оставляем как было
+                    if (string.IsNullOrWhiteSpace(t)) t = batch[i].Source; // the model returned nothing — keep the original
                     if (!Apply(batch[i], t)) fallbacks++;
                     onParagraph?.Invoke(StripTags(t));
                 }
@@ -124,7 +124,7 @@ public static class OfficeTranslator
         return group * 100_000 + n;
     }
 
-    // ---------------- разбор ----------------
+    // ---------------- parsing ----------------
 
     private static IEnumerable<Paragraph> Collect(XDocument doc, bool word)
     {
@@ -135,7 +135,7 @@ public static class OfficeTranslator
 
         foreach (var para in doc.Descendants(p))
         {
-            // Прогоны этого абзаца (без вложенных абзацев — надписи внутри рисунков разбираются отдельно).
+            // Runs of this paragraph (without nested paragraphs — text boxes inside drawings are parsed separately).
             var runs = para.Descendants(r)
                 .Where(x => x.Ancestors(p).First() == para && x.Elements(t).Any())
                 .ToList();
@@ -160,7 +160,7 @@ public static class OfficeTranslator
             }
 
             string plain = string.Concat(segments.Select(s => s.Text));
-            if (!plain.Any(char.IsLetter)) continue; // номера, пробелы, знаки — переводить нечего
+            if (!plain.Any(char.IsLetter)) continue; // numbers, spaces, symbols — nothing to translate
 
             var meaningful = segments.Where(s => s.Text.Trim().Length > 0).ToList();
             var paragraph = new Paragraph { Segments = segments, Plain = plain };
@@ -180,7 +180,7 @@ public static class OfficeTranslator
         }
     }
 
-    /// <summary>Оформление прогона без языка и проверки орфографии (они не делают текст другим).</summary>
+    /// <summary>Run formatting without language and spell-check settings (they do not make the text look different).</summary>
     private static string FormatKey(XElement? rPr)
     {
         if (rPr is null) return "";
@@ -195,12 +195,12 @@ public static class OfficeTranslator
 
     public static string StripTags(string s) => Regex.Replace(s, @"</?\d+>", "");
 
-    /// <summary>Записывает перевод в абзац. False — теги потерялись, оформление упрощено.</summary>
+    /// <summary>Writes the translation into the paragraph. False — tags were lost, formatting simplified.</summary>
     private static bool Apply(Paragraph p, string translated)
     {
         if (!p.Tagged)
         {
-            // Пробелы по краям абзаца — как в оригинале.
+            // Spaces at the paragraph edges — as in the original.
             string lead = p.Plain[..(p.Plain.Length - p.Plain.TrimStart().Length)];
             string trail = p.Plain[p.Plain.TrimEnd().Length..];
             var target = p.Segments.First(s => s.Text.Trim().Length > 0);
@@ -208,7 +208,7 @@ public static class OfficeTranslator
             return true;
         }
 
-        // Разбираем ответ по порядку: пробелы между тегами приклеиваем к предыдущей части.
+        // Parse the reply in order: spaces between tags are attached to the previous part.
         var found = new Dictionary<int, string>();
         var order = new List<int>();
         int pos = 0;
@@ -230,7 +230,7 @@ public static class OfficeTranslator
 
         bool allMeaningful = p.Segments.Select((s, i) => (s, i)).All(x => x.s.Text.Trim().Length == 0 || found.ContainsKey(x.i + 1));
         bool sorted = order.SequenceEqual(order.OrderBy(x => x));
-        // Порядок частей поменялся (в другом языке другой порядок слов) — переставляем, только если на месте все части.
+        // The order of parts changed (another language, another word order) — reorder only if all parts are present.
         if (ok && allMeaningful && (sorted || order.Count == p.Segments.Count))
         {
             for (int i = 0; i < p.Segments.Count; i++)
@@ -239,16 +239,16 @@ public static class OfficeTranslator
             return true;
         }
 
-        // Теги потеряны: весь перевод — в первую часть с текстом.
+        // Tags lost: the whole translation goes into the first part with text.
         var first = p.Segments.First(s => s.Text.Trim().Length > 0);
         foreach (var s in p.Segments) SetText(s, s == first ? StripTags(translated).Trim() : "");
         return false;
     }
 
-    /// <summary>Переставляет прогоны частей в порядке, в каком их расставила модель.</summary>
+    /// <summary>Reorders the parts' runs in the order the model placed them.</summary>
     private static void Reorder(Paragraph p, List<int> order)
     {
-        // Только если все прогоны — соседи в одном родителе, иначе (ссылки, поля) не трогаем.
+        // Only if all runs are siblings in one parent; otherwise (links, fields) leave them alone.
         var allRuns = p.Segments.SelectMany(s => s.Runs).ToList();
         var parent = allRuns[0].Parent;
         if (parent is null || allRuns.Any(r => r.Parent != parent)) return;
@@ -264,7 +264,7 @@ public static class OfficeTranslator
         else parent.AddFirst(sequence);
     }
 
-    /// <summary>Текст части: в первый текстовый элемент первого прогона, остальные текстовые элементы убираем.</summary>
+    /// <summary>Part text: into the first text element of the first run, other text elements are removed.</summary>
     private static void SetText(Segment s, string text)
     {
         bool placed = false;
@@ -283,7 +283,7 @@ public static class OfficeTranslator
         }
     }
 
-    /// <summary>Язык текста в документе — чтобы Word/PowerPoint проверяли орфографию на новом языке.</summary>
+    /// <summary>Text language in the document — so Word/PowerPoint spell-check in the new language.</summary>
     private static void SetLanguage(XDocument doc, bool word, string tag)
     {
         if (word)

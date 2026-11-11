@@ -4,10 +4,10 @@ using Velopack.Sources;
 namespace N17YuHelper;
 
 /// <summary>
-/// Обновления через интернет (Velopack + GitHub Releases) — только для установленной программы.
-/// Проверка через минуту после запуска и потом раз в 6 часов; новая версия скачивается в фоне.
-/// Ставить её или нет — решает TrayApp (сразу, когда программа простаивает, или по команде пользователя).
-/// Переносная копия обновляется по-старому: файлом n17YuHelper.update.exe рядом с exe (см. Updater).
+/// Online updates (Velopack + GitHub Releases) — installed app only.
+/// Checks a minute after startup and then every 6 hours; a new version is downloaded in the background.
+/// Whether to install it is decided by TrayApp (right away when the app is idle, or on the user's command).
+/// A portable copy updates the old way: with n17YuHelper.update.exe next to the exe (see Updater).
 /// </summary>
 internal sealed class OnlineUpdater : IDisposable
 {
@@ -23,15 +23,15 @@ internal sealed class OnlineUpdater : IDisposable
     private readonly System.Windows.Forms.Timer _timer = new();
     private bool _checking;
 
-    /// <summary>Скачанная и готовая к установке версия.</summary>
+    /// <summary>Downloaded version ready to install.</summary>
     public UpdateInfo? Ready { get; private set; }
 
     public string? ReadyVersion => Ready?.TargetFullRelease.Version.ToString();
 
-    /// <summary>Новая версия скачана.</summary>
+    /// <summary>A new version was downloaded.</summary>
     public event Action<string>? UpdateDownloaded;
 
-    /// <summary>Работают ли обновления через интернет (программа установлена установщиком).</summary>
+    /// <summary>Whether online updates work (the app was installed by the installer).</summary>
     public bool Supported => _manager is not null;
 
     public OnlineUpdater(Func<AppSettings> settings)
@@ -59,7 +59,7 @@ internal sealed class OnlineUpdater : IDisposable
         Log.Info(_manager is not null ? $"Online updates: on ({RepoUrl})" : "Online updates: off (portable copy)");
     }
 
-    /// <summary>Проверяет и скачивает новую версию. Возвращает текст для пользователя.</summary>
+    /// <summary>Checks for and downloads a new version. Returns a message for the user.</summary>
     public async Task<string> CheckAsync(bool manual)
     {
         if (_manager is null)
@@ -95,8 +95,8 @@ internal sealed class OnlineUpdater : IDisposable
     }
 
     /// <summary>
-    /// Запускает установку скачанной версии: Velopack ждёт выхода программы, ставит обновление и запускает её снова.
-    /// После true программа должна сразу выйти.
+    /// Starts installing the downloaded version: Velopack waits for the app to exit, installs the update and starts it again.
+    /// After true the app must exit right away.
     /// </summary>
     public bool StartApplyAndRestart()
     {

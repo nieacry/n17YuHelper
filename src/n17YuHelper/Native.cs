@@ -2,10 +2,10 @@ using System.Runtime.InteropServices;
 
 namespace N17YuHelper;
 
-/// <summary>Вызовы Win32, которые нужны программе.</summary>
+/// <summary>Win32 calls the app needs.</summary>
 internal static partial class Native
 {
-    // ---- Горячие клавиши ----
+    // ---- Hotkeys ----
     public const int WM_HOTKEY = 0x0312;
     public const uint MOD_ALT = 0x0001;
     public const uint MOD_CONTROL = 0x0002;
@@ -21,7 +21,7 @@ internal static partial class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool UnregisterHotKey(IntPtr hWnd, int id);
 
-    // ---- Клавиатура ----
+    // ---- Keyboard ----
     public const int VK_SHIFT = 0x10;
     public const int VK_CONTROL = 0x11;
     public const int VK_MENU = 0x12;
@@ -35,11 +35,11 @@ internal static partial class Native
     [LibraryImport("user32.dll")]
     public static partial void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
-    // ---- Буфер обмена ----
+    // ---- Clipboard ----
     [LibraryImport("user32.dll")]
     public static partial uint GetClipboardSequenceNumber();
 
-    // ---- Окна ----
+    // ---- Windows ----
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     [DllImport("user32.dll")]
@@ -84,8 +84,8 @@ internal static partial class Native
     public static partial uint GetCurrentThreadId();
 
     /// <summary>
-    /// Выводит окно на передний план. Windows разрешает это не всегда,
-    /// поэтому временно подключаемся к вводу текущего активного окна.
+    /// Brings a window to the foreground. Windows does not always allow it,
+    /// so we temporarily attach to the input of the current active window.
     /// </summary>
     public static void ForceForeground(IntPtr hwnd)
     {
@@ -114,7 +114,7 @@ internal static partial class Native
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
 
-    // ---- Снимок экрана ----
+    // ---- Screen capture ----
     public const uint SRCCOPY = 0x00CC0020;
     public const uint CAPTUREBLT = 0x40000000;
 
@@ -128,14 +128,14 @@ internal static partial class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool BitBlt(IntPtr hdcDest, int xDest, int yDest, int w, int h, IntPtr hdcSrc, int xSrc, int ySrc, uint rop);
 
-    // ---- Исключить окно из снимков экрана (Windows 10 2004+) ----
+    // ---- Exclude a window from screen captures (Windows 10 2004+) ----
     public const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
 
-    // ---- Память ----
+    // ---- Memory ----
     [LibraryImport("psapi.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool EmptyWorkingSet(IntPtr hProcess);

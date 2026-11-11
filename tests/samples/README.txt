@@ -1,7 +1,7 @@
-Тестовые образцы для проверки распознавания, перевода и грамматики.
+Test samples for checking recognition, translation and grammar.
 
 en\  ru\  uk\  zh\
 
-В каждую папку: скриншоты интерфейсов, документов, мелкого шрифта (.png)
-и тексты с ошибками для проверки грамматики (.txt).
-Для украинского обязательно примеры с і, ї, є, ґ и с русизмами.
+Each folder: screenshots of UIs, documents, small fonts (.png)
+and texts with mistakes for checking grammar (.txt).
+For Ukrainian, include samples with і, ї, є, ґ and with Russianisms.
