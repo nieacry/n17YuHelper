@@ -13,7 +13,6 @@ Region and selected-text capture, OCR (text / table / formula), translation EN/R
 
 ## Suggested to the owner, not chosen yet
 
-- Hotkey for "Open last window" (e.g. Ctrl+Shift+Win+L).
 - Subtitles .srt/.vtt: translate only the dialogue text, guaranteed not to touch numbers and timings.
 - Batch translation of a folder of files.
 - "Clipboard translator" mode: a pinned window translates everything that is copied (Ctrl+C).

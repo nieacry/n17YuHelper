@@ -2,7 +2,7 @@
 
 A Windows tray app (works like ShareX): global hotkey → region frame, selected text, voice or a file → action window: translation, text recognition (OCR) to the clipboard, grammar check, custom actions. Everything runs on local models through llama.cpp.
 
-Current version: **0.15** (see CHANGELOG.md). How it is built — docs/ARCHITECTURE.md, plans and ideas — docs/ROADMAP.md, for users — README.md (English) and README.uk.md (Ukrainian).
+Current version: **0.16** (see CHANGELOG.md). How it is built — docs/ARCHITECTURE.md, plans and ideas — docs/ROADMAP.md, for users — README.md (English) and README.uk.md (Ukrainian).
 
 ## Project rules (mandatory)
 

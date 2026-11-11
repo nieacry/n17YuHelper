@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.16 — 2026-11-11
+
+- New hotkey action "Open last window" (Settings → Hotkeys → Action). Default hotkey: Ctrl+Shift+Win+W — added automatically to existing settings if that combination is free. Source and Then are not used for this action and are greyed out.
+
 ## v0.15 — 2026-11-11
 
 Public beta.

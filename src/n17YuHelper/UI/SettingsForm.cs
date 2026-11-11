@@ -658,6 +658,7 @@ internal sealed class HotkeyRow : TableLayoutPanel
         ("Recognize table", HotkeyAction.OcrTable), ("Recognize formula", HotkeyAction.OcrFormula),
         ("Translate", HotkeyAction.Translate), ("Check grammar", HotkeyAction.Grammar),
         ("Text as is", HotkeyAction.AsIs),
+        ("Open last window", HotkeyAction.OpenLastWindow),
     ];
 
     /// <summary>Actions in the list: built-in + custom (Custom with a name).</summary>
@@ -715,7 +716,13 @@ internal sealed class HotkeyRow : TableLayoutPanel
         UpdateTargetEnabled();
     }
 
-    private void UpdateTargetEnabled() => _target.Enabled = _actions[Math.Max(0, _action.SelectedIndex)].Value == HotkeyAction.Translate;
+    private void UpdateTargetEnabled()
+    {
+        var action = _actions[Math.Max(0, _action.SelectedIndex)].Value;
+        _target.Enabled = action == HotkeyAction.Translate;
+        // "Open last window" needs no input and always shows the window.
+        _source.Enabled = _after.Enabled = action != HotkeyAction.OpenLastWindow;
+    }
 
     /// <summary>Column header row.</summary>
     public static Control HeaderRow()

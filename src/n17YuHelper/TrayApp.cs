@@ -691,6 +691,14 @@ internal sealed class TrayApp : ApplicationContext
             rec.Finish();
             return;
         }
+        if (entry.Action == HotkeyAction.OpenLastWindow)
+        {
+            // Leave the WM_HOTKEY handler before showing the window.
+            await Task.Yield();
+            Log.Info($"Run: {entry.Name} [{entry.Action}]");
+            OpenLastWindow();
+            return;
+        }
         if (_busy) return;
         _busy = true;
         _trimTimer.Stop();

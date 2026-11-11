@@ -46,6 +46,7 @@ Prefer no installer? Use `n17YuHelper-win-Portable.zip` and unpack it anywhere.
 | Ctrl+Shift+Win+A | Translate the last region over the original (▶ live mode) |
 | Ctrl+Shift+Win+V | Speak → translation |
 | Ctrl+Shift+Win+D | Speak → text typed into the app (dictation) |
+| Ctrl+Shift+Win+W | Reopen the last action window |
 
 Left-click the tray icon to select a region; right-click for the menu. Every hotkey can be changed or added in **Settings → Hotkeys**.
 

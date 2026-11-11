@@ -32,6 +32,8 @@ public enum HotkeyAction
     Custom,
     /// <summary>Text as is, no processing (e.g. dictation straight into an app).</summary>
     AsIs,
+    /// <summary>Reopen the action window the way it was last closed (Source and Then are ignored).</summary>
+    OpenLastWindow,
 }
 
 public enum AfterAction
@@ -59,7 +61,7 @@ public sealed class HotkeyEntry
 
 public sealed class AppSettings
 {
-    public const int CurrentSettingsVersion = 10;
+    public const int CurrentSettingsVersion = 11;
 
     public int SettingsVersion { get; set; } = CurrentSettingsVersion;
 
@@ -173,7 +175,11 @@ public sealed class AppSettings
         LastRegionOverlayHotkey(),
         VoiceTranslateHotkey(),
         VoiceTypeHotkey(),
+        OpenLastWindowHotkey(),
     ];
+
+    private static HotkeyEntry OpenLastWindowHotkey() =>
+        new() { Name = "Open last window", Keys = "Ctrl+Shift+Win+W", Source = InputSource.Auto, Action = HotkeyAction.OpenLastWindow, After = AfterAction.ShowWindow };
 
     private static HotkeyEntry VoiceTranslateHotkey() =>
         new() { Name = "Voice: speak and translate", Keys = "Ctrl+Shift+Win+V", Source = InputSource.Voice, Action = HotkeyAction.Translate, After = AfterAction.ShowWindow };
@@ -264,6 +270,11 @@ public sealed class AppSettings
             if (!Hotkeys.Any(h => string.Equals(h.Keys, "Ctrl+Shift+Win+D", StringComparison.OrdinalIgnoreCase)))
                 Hotkeys.Add(VoiceTypeHotkey());
         }
+
+        // v10 → v11: hotkey "Open last window".
+        if (SettingsVersion < 11 && !Hotkeys.Any(h => h.Action == HotkeyAction.OpenLastWindow ||
+                                                      string.Equals(h.Keys, "Ctrl+Shift+Win+W", StringComparison.OrdinalIgnoreCase)))
+            Hotkeys.Add(OpenLastWindowHotkey());
 
         // v6 → v7: new hotkey "translate and replace" (if that combination is not taken yet).
         if (SettingsVersion < 7 && !Hotkeys.Any(h => string.Equals(h.Keys, "Ctrl+Shift+Win+R", StringComparison.OrdinalIgnoreCase)))
