@@ -345,7 +345,8 @@ internal sealed class ActionForm : Form
     private void SetSourceText(string text)
     {
         _hasText = true;
-        _sourceBox.Text = Normalize(text);
+        // Trailing empty lines (some apps copy them with the selection) would scroll the text out of view.
+        _sourceBox.Text = Normalize(text).TrimEnd('\r', '\n', ' ', '\t');
         _sourceBox.SelectionStart = _sourceBox.TextLength;
         _sourceBox.SelectionLength = 0;
         UpdateLanguage();

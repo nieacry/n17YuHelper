@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.16.1 — 2026-11-11
+
+- "Open last window" (hotkey and tray menu): if no window has been closed yet, an empty action window opens to type or paste text.
+- Trailing empty lines of the selected text are dropped, so the text no longer scrolls out of view in the ORIGINAL box.
+
 ## v0.16 — 2026-11-11
 
 - New hotkey action "Open last window" (Settings → Hotkeys → Action). Default hotkey: Ctrl+Shift+Win+W — added automatically to existing settings if that combination is free. Source and Then are not used for this action and are greyed out.

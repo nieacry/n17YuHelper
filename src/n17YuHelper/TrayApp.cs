@@ -1389,15 +1389,16 @@ internal sealed class TrayApp : ApplicationContext
     /// <summary>Opens the action window the way it was closed last time.</summary>
     private void OpenLastWindow()
     {
-        if (_lastWindow is not { } snap)
-        {
-            ShowToast("No window to restore yet", 1500);
-            return;
-        }
         if (_actionForm is { IsDisposed: false } open)
         {
             // The window is open anyway — just show it.
             Native.ForceForeground(open.Handle);
+            return;
+        }
+        if (_lastWindow is not { } snap)
+        {
+            // Nothing to restore yet — an empty window to type or paste text.
+            ShowTypeWindow();
             return;
         }
         var input = snap.Text is not null
