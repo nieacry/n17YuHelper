@@ -42,7 +42,7 @@ Files: tray menu "Translate file...", drag and drop into ActionForm, Explorer "S
 ## UI
 
 - `UI/Theme` — colors (System/Light/Dark, Windows accent from the DWM registry), fonts, DWM (dark frame, rounded corners).
-- `UI/ModernControls` — ModernButton (Normal/Accent/Ghost, glyph, digit hint), Card (with a colored `Mark`), BusyLine, Caption.
+- `UI/ModernControls` — ModernButton (Normal/Accent/Ghost, glyph, digit hint), Card (with a colored `Mark`; `Active` — accent tint, bar and border for the selected item), Pill (accent badge), BusyLine, Caption.
 - `UI/ActionForm` — the main action window: header (language, 📂, 🎤, 📌, ×), text box / image, result, buttons 1–9 (Translate, Recognize ▾, Grammar, Copy, Replace, Actions, Save). Snapshot on close (`WindowSnapshot`) → "Open last window".
 - `UI/OverlayForm` — translation over the region (excluded from screen capture, live mode).
 - `UI/RecordingToast` — recording bar (no focus, Esc is global while recording).

@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.16.2 — 2026-11-12
+
+- Models window: the models in use stand out — tinted card in the accent color, wide accent bar, thick accent border and an "✓ IN USE" badge next to the name. The header has a bold line "In use: PaddleOCR-VL 1.6 + Gemma 4 …"; it updates right after "Use".
+
 ## v0.16.1 — 2026-11-11
 
 - "Open last window" (hotkey and tray menu): if no window has been closed yet, an empty action window opens to type or paste text.

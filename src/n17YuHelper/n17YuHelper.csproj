@@ -13,7 +13,7 @@
     <AssemblyName>n17YuHelper</AssemblyName>
     <RootNamespace>N17YuHelper</RootNamespace>
     <Product>n17 YuHelper</Product>
-    <Version>0.16.1</Version>
+    <Version>0.16.2</Version>
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 

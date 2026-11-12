@@ -33,6 +33,7 @@ internal sealed class ModelManagerForm : Form
     private readonly ModernButton _cancel;
     private readonly ModernButton? _recommendedButton;
     private readonly Label _diskLabel;
+    private readonly Label _inUseLabel;
     private CancellationTokenSource? _cts;
     private bool _working;
 
@@ -89,6 +90,9 @@ internal sealed class ModelManagerForm : Form
         head.Controls.Add(_diskLabel);
         head.Controls.Add(InfoLine("", $"Recommended: {ModelCatalog.Ocr.Name} + {rec.Name}" +
             (_gpu.Vendor == GpuVendor.None ? " (no dedicated GPU found: models will run on the CPU and be slow)" : "")));
+        _inUseLabel = InfoLine("\uE73E", "");
+        _inUseLabel.Font = Theme.UiFont(9.5f, FontStyle.Bold);
+        head.Controls.Add(_inUseLabel);
 
         long recSize = new[] { ModelCatalog.Ocr, rec }.Where(p => !p.IsInstalled(ModelsDir)).Sum(p => p.TotalSize)
                        + (Downloader.InstalledRuntime(RuntimeDir) is null ? 400L << 20 : 0);
@@ -162,6 +166,16 @@ internal sealed class ModelManagerForm : Form
 
     private static Label InfoLine(string glyph, string text) => new GlyphLabel(glyph, text);
 
+    /// <summary>Models in use right now (for the header line).</summary>
+    private string InUseText()
+    {
+        string ocr = ModelCatalog.Ocr.IsInstalled(ModelsDir) ? ModelCatalog.Ocr.Name : "no OCR model";
+        string file = _host.Settings().TextModel.ModelFile;
+        string text = ModelCatalog.ByMainFile(file)?.Name ?? (string.IsNullOrWhiteSpace(file) ? "no translation model" : Path.GetFileNameWithoutExtension(file));
+        if (!string.IsNullOrWhiteSpace(file) && !File.Exists(Path.Combine(ModelsDir, file))) text += " (not downloaded)";
+        return $"{ocr} + {text}";
+    }
+
     /// <summary>Models are large (3–20 GB): let the user put them on another drive.</summary>
     private void ChangeModelsFolder()
     {
@@ -201,6 +215,7 @@ internal sealed class ModelManagerForm : Form
         _list.Controls.Clear();
 
         _diskLabel.Text = $"Free disk space for models: {ModelCatalog.FormatSize(Downloader.FreeSpace(ModelsDir))}  ({ModelsDir})";
+        _inUseLabel.Text = "In use: " + InUseText();
 
         _list.Controls.Add(Section("Engine"));
         _list.Controls.Add(RuntimeRow());
@@ -296,7 +311,8 @@ internal sealed class ModelManagerForm : Form
             : tooBig ? $"✗ Too big: needs more GPU memory than your {vram:0.#} GB, will be very slow"
             : null;
         Color? mark = recommended ? Theme.Success : tooBig ? Theme.Danger : null;
-        var card = RowCard(p.Name, p.Description, status, installed, warn: false, mark: mark, verdict: verdict);
+        var card = RowCard(p.Name, p.Description, status, installed, warn: false, mark: mark, verdict: verdict,
+            active: installed && inUse);
 
         var buttons = new List<ModernButton>();
         if (!installed)
@@ -339,11 +355,21 @@ internal sealed class ModelManagerForm : Form
     }
 
     private static Card RowCard(string title, string description, string status, bool ok, bool warn = false,
-        Color? mark = null, string? verdict = null)
+        Color? mark = null, string? verdict = null, bool active = false)
     {
-        var card = new Card { Height = verdict is null ? 92 : 112, Margin = new Padding(0, 0, 0, 8), Padding = new Padding(16, 10, 10, 10), Mark = mark };
-        var text = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = verdict is null ? 3 : 4, BackColor = Theme.Surface };
-        text.Controls.Add(new Label { Text = title, AutoSize = true, Font = Theme.UiFont(10.5f, FontStyle.Bold), ForeColor = Theme.Text, BackColor = Theme.Surface });
+        var card = new Card { Height = verdict is null ? 92 : 112, Margin = new Padding(0, 0, 0, 8), Padding = new Padding(active ? 20 : 16, 10, 10, 10), Mark = mark, Active = active };
+        var bg = card.BackColor;
+        var text = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = verdict is null ? 3 : 4, BackColor = bg };
+        var titleLabel = new Label { Text = title, AutoSize = true, Font = Theme.UiFont(10.5f, FontStyle.Bold), ForeColor = Theme.Text, BackColor = bg };
+        if (active)
+        {
+            // The model in use: title + accent "IN USE" badge.
+            var titleRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = bg, Margin = Padding.Empty };
+            titleRow.Controls.Add(titleLabel);
+            titleRow.Controls.Add(new Pill("✓  IN USE"));
+            text.Controls.Add(titleRow);
+        }
+        else text.Controls.Add(titleLabel);
         if (verdict is not null)
             text.Controls.Add(new Label
             {
@@ -351,16 +377,16 @@ internal sealed class ModelManagerForm : Form
                 AutoSize = true,
                 Font = Theme.UiFont(9f, FontStyle.Bold),
                 ForeColor = mark ?? Theme.Text,
-                BackColor = Theme.Surface,
+                BackColor = bg,
                 Padding = new Padding(0, 2, 0, 0),
             });
-        text.Controls.Add(new Label { Text = description, AutoSize = true, ForeColor = Theme.TextDim, BackColor = Theme.Surface, Tag = "dim", Padding = new Padding(0, 2, 0, 0) });
+        text.Controls.Add(new Label { Text = description, AutoSize = true, ForeColor = Theme.TextDim, BackColor = bg, Tag = "dim", Padding = new Padding(0, 2, 0, 0) });
         text.Controls.Add(new Label
         {
             Text = (ok ? "✓ " : "") + status,
             AutoSize = true,
             ForeColor = warn ? Theme.Danger : ok ? Theme.Success : Theme.TextDim,
-            BackColor = Theme.Surface,
+            BackColor = bg,
             Padding = new Padding(0, 4, 0, 0),
             Font = Theme.UiFont(8.75f),
         });
@@ -376,7 +402,7 @@ internal sealed class ModelManagerForm : Form
             AutoSize = true,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
-            BackColor = Theme.Surface,
+            BackColor = card.BackColor,
             Padding = new Padding(0, 16, 0, 0),
         };
         foreach (var b in buttons) flow.Controls.Add(b);

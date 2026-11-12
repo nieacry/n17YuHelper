@@ -208,8 +208,23 @@ internal sealed class Card : Panel
         g.Clear(Parent?.BackColor ?? Theme.Bg);
         var r = new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f);
         using var path = Theme.RoundRect(r, 8);
-        using var b = new SolidBrush(Theme.Surface);
+        using var b = new SolidBrush(Active ? ActiveFill : Theme.Surface);
         g.FillPath(b, path);
+        if (Active)
+        {
+            // Selected item: tinted background, wide accent bar and a thick accent border.
+            var state = g.Save();
+            g.SetClip(path);
+            float strip = 8f * DeviceDpi / 96f;
+            using (var ab = new SolidBrush(Theme.Accent)) g.FillRectangle(ab, 0, 0, strip, Height);
+            g.Restore(state);
+            float w = 2.5f * DeviceDpi / 96f;
+            var inner = new RectangleF(w / 2, w / 2, Width - w - 0.5f, Height - w - 0.5f);
+            using var ip = Theme.RoundRect(inner, 8);
+            using var ap = new Pen(Theme.Accent, w);
+            g.DrawPath(ap, ip);
+            return;
+        }
         if (Mark is { } mark)
         {
             // Colored bar on the left and a border of the same color.
@@ -224,6 +239,25 @@ internal sealed class Card : Panel
         }
         using var p = new Pen(Theme.Border);
         g.DrawPath(p, path);
+    }
+
+    /// <summary>Background of a selected (active) card: the surface tinted with the accent color.</summary>
+    public static Color ActiveFill
+    {
+        get
+        {
+            float t = Theme.IsDark ? 0.22f : 0.12f;
+            Color s = Theme.Surface, a = Theme.Accent;
+            return Color.FromArgb((int)(s.R + (a.R - s.R) * t), (int)(s.G + (a.G - s.G) * t), (int)(s.B + (a.B - s.B) * t));
+        }
+    }
+
+    /// <summary>Selected card (e.g. the model in use): accent tint, accent bar and border. Takes priority over Mark.</summary>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public bool Active
+    {
+        get;
+        set { field = value; BackColor = value ? ActiveFill : Theme.Surface; Invalidate(); }
     }
 
     /// <summary>Mark color (green — recommended, red — not). Null — a plain card.</summary>
@@ -288,5 +322,31 @@ internal sealed class Caption : Label
         BackColor = Theme.Bg;
         Padding = new Padding(4, 4, 0, 0);
         Tag = "dim";
+    }
+}
+
+/// <summary>Small rounded badge in the accent color (e.g. "IN USE").</summary>
+internal sealed class Pill : Control
+{
+    public Pill(string text)
+    {
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
+        Text = text;
+        Font = Theme.UiFont(8.5f, FontStyle.Bold);
+        var size = TextRenderer.MeasureText(text, Font);
+        Size = new Size(size.Width + 18, size.Height + 6);
+        Margin = new Padding(10, 1, 0, 0);
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(Parent?.BackColor ?? Theme.Surface);
+        using var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), (Height - 1) / 2f);
+        using var b = new SolidBrush(Theme.Accent);
+        g.FillPath(b, path);
+        TextRenderer.DrawText(g, Text, Font, ClientRectangle, Theme.AccentText,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
     }
 }
